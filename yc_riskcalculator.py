@@ -19,9 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import copy
+import copy, enum, re
 import yc_curvebuilder
-import enum
 
 class BumpType(enum.Enum):
     FULL_REBUILD = 0
@@ -35,13 +34,13 @@ class RiskCalculator:
         self.build_output = build_output
         self.cache = dict()
 
-    def find_instruments(self, instrument_search_string):
+    def find_instruments(self, instrument_regex):
         bumped_instruments = list()
         for name in sorted(self.build_output.input_prices.keys()):
-            if instrument_search_string in name:
+            if re.match(instrument_regex, name):
                 bumped_instruments.append(name)
         if len(bumped_instruments) == 0:
-            raise BaseException("Pattern %s corresponds to no instruments" % instrument_search_string)
+            raise BaseException("Regex pattern %s corresponds to no instruments" % instrument_regex)
         return bumped_instruments
 
     def get_bumped_curvemap(self, instrument_list, rate_bump_amount, bump_type):

@@ -188,9 +188,9 @@ class BuilderCompositeTests(unittest.TestCase):
         aae(actual_sonia_df, expected_sonia_df)
 
         risk_engine = RiskCalculator(curve_builder, build_output)
-        instrument_search_string = "USD-"
-        numpy.testing.assert_equal(len(risk_engine.find_instruments(instrument_search_string)), 32)
-        instruments_to_bump = risk_engine.find_instruments(instrument_search_string)
+        instrument_regex = "USD\-.*"
+        numpy.testing.assert_equal(len(risk_engine.find_instruments(instrument_regex)), 32)
+        instruments_to_bump = risk_engine.find_instruments(instrument_regex)
         bumped_curves = risk_engine.get_bumped_curvemap(instruments_to_bump, 1e-4, BumpType.FULL_REBUILD)
         bumped_curves_jacobian = risk_engine.get_bumped_curvemap(instruments_to_bump, 1e-4, BumpType.JACOBIAN_REBUILD)
 
