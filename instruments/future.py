@@ -46,8 +46,8 @@ class Future(Instrument):
     def drdp(self):
         return -100
 
-    def price_from_rate(self,x):
+    def price_from_par_rate(self, x):
         return 100 - (x * 1.e+2)
 
-    def rate_from_price(self,x):
+    def par_rate_from_price(self, x):
         return (100 - x) * 1.e-2

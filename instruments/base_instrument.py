@@ -42,10 +42,10 @@ class Instrument:
     def drdp(self):
         return 1.e+2
 
-    def price_from_rate(self, x):
+    def price_from_par_rate(self, x): # TODO rename quote_from_rate
         return x*1.e+2
 
-    def rate_from_price(self, x):
+    def par_rate_from_price(self, x): # TODO rename rate_from_quote
         return x*1.e-2
 
     def __str__(self):

@@ -78,7 +78,7 @@ class InstrumentTests(unittest.TestCase):
 
 class PriceLadderTest(unittest.TestCase):
     def test_price_ladder(self):
-        d = collections.OrderedDict({ 'Instrument_Z': 0, 'Instrument_A': 1, 'Instrument_B': 2, 'Else': 3})
+        d = collections.OrderedDict((('Instrument_Z', 0),('Instrument_A', 1),('Instrument_B', 2),('Else', 3)))
         ladder = PriceLadder.create(d)
         df = ladder.dataframe()
         self.assertEqual((len(df)), 4)

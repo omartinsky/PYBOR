@@ -43,17 +43,17 @@ class RiskCalculator:
             raise BaseException("Regex pattern %s corresponds to no instruments" % instrument_regex)
         return bumped_instruments
 
-    def get_bumped_curvemap(self, instrument_list, rate_bump_amount, bump_type):
+    def get_bumped_curvemap(self, instrument_list, par_rate_bump_amount, bump_type):
         if bump_type == BumpType.FULL_REBUILD:
-            return self.get_bumped_curvemap_full(instrument_list, rate_bump_amount)
+            return self.get_bumped_curvemap_full(instrument_list, par_rate_bump_amount)
         elif bump_type == BumpType.JACOBIAN_REBUILD:
-            return self.get_bumped_curvemap_jacobian(instrument_list, rate_bump_amount)
+            return self.get_bumped_curvemap_jacobian(instrument_list, par_rate_bump_amount)
         else:
             raise BaseException("Unknown bump type")
 
-    def get_bumped_curvemap_full(self, instrument_list, rate_bump_amount):
+    def get_bumped_curvemap_full(self, instrument_list, par_rate_bump_amount):
 
-        key = (tuple(instrument_list), rate_bump_amount)
+        key = (tuple(instrument_list), par_rate_bump_amount)
 
         if key in self.cache:
             return self.cache[key]
@@ -62,30 +62,30 @@ class RiskCalculator:
         for name, value in bumped_prices.items():
             if name in instrument_list:
                 drdp = self.curve_engine.get_instrument_by_name(name).drdp()
-                price_bump_amount = rate_bump_amount * drdp
+                price_bump_amount = par_rate_bump_amount * drdp
                 bumped_prices[name] += price_bump_amount
 
         bumped_build_output = self.curve_engine.build_curves(bumped_prices)
         self.cache[key] = bumped_build_output.output_curvemap
         return bumped_build_output.output_curvemap
 
-    def get_bumped_curvemap_jacobian(self, instrument_list, rate_bump_amount):
+    def get_bumped_curvemap_jacobian(self, instrument_list, par_rate_bump_amount):
         from numpy import zeros, squeeze, array
         from numpy.linalg import inv
 
         assert isinstance(instrument_list, list)
         assert isinstance(self.build_output, yc_curvebuilder.BuildOutput)
 
-        rate_bumps = zeros(len(self.build_output.instruments))
+        par_rate_bumps = zeros(len(self.build_output.instruments))
         instrument_names = [i.get_name() for i in self.build_output.instruments]
         for instrument_name in instrument_list:
             ix = instrument_names.index(instrument_name)
-            rate_bumps[ix] = rate_bump_amount
+            par_rate_bumps[ix] = par_rate_bump_amount
 
         jacobian_dPdI = inv(self.build_output.jacobian_dIdP)
         curvemap_bumped = copy.deepcopy(self.build_output.output_curvemap)
 
-        responses = rate_bumps * jacobian_dPdI
+        responses = par_rate_bumps * jacobian_dPdI
         assert responses.shape[0] == 1  # just one row
         responses = squeeze(array(responses))
 

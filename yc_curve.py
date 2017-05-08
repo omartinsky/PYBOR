@@ -85,7 +85,7 @@ class Curve:
         elif self.interpolation_mode_ in [InterpolationMode.CUBIC_LOGDF]:
             kind = 'cubic'
         else:
-            raise BaseException("Invalid interpolation mode")
+            raise BaseException("Invalid interpolation mode. Allowed modes are %s" % enum_values_as_string(InterpolationMode))
         #
         assert len(self.times_) == len(self.dfs_), (len(self.times_), len(self.dfs_))
         #

@@ -82,10 +82,10 @@ class PriceLadder(collections.OrderedDict):
     def instrument_list(self):
         return list(self.keys())
 
-    def sublist(self, searchstring):
+    def sublist(self, instrument_regex):
         l = []
         for k, v in self.items():
-            if searchstring in k:
+            if re.match(instrument_regex, k):
                 l.append((k,v))
         return PriceLadder.create(OrderedDict(l))
 
@@ -222,8 +222,13 @@ class CurveBuilder:
         for curve_template in self.curve_templates:
             for instrument in curve_template.instruments:
                 rate = instrument.calc_par_rate(curvemap)
-                out[instrument.name_] = instrument.price_from_rate(rate)
+                out[instrument.name_] = instrument.price_from_par_rate(rate)
         return PriceLadder(out)
+
+    def get_instrument_rates(self, price_ladder):
+        maturities = [self.get_instrument_by_name(name).get_pillar_date() for name in price_ladder.keys()]
+        rates = [self.get_instrument_by_name(name).par_rate_from_price(price) for name, price in price_ladder.items()]
+        return array(maturities), array(rates)
 
     def parse_instrument_prices(self, prices):
         if isinstance(prices, dict):
@@ -246,7 +251,7 @@ class CurveBuilder:
         for instrument in self.all_instruments:
             r_actual = instrument.calc_par_rate(curvemap)
             price = instrument_prices[instrument.name_]
-            r_target = instrument.rate_from_price(price)
+            r_target = instrument.par_rate_from_price(price)
             y.append(r_actual - r_target)
         return y
 

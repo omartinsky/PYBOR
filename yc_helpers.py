@@ -24,12 +24,18 @@ def assert_type(obj, expected_type):
     assert isinstance(obj, expected_type), "Unexpected type %s" % str(type(obj))
 
 
+def enum_values(enum_class):
+    return enum_class._member_map_
+
+def enum_values_as_string(enum_class):
+    return ','.join([x for x in enum_values(enum_class)])
+
 def enum_from_string(enum_class, string_representation):
     if string_representation in enum_class._member_map_:
         return enum_class._member_map_[string_representation]
     else:
         raise BaseException("Unable to convert '%s' to %s. Possible values are: %s" %
-                            (string_representation, str(enum_class), ','.join([x for x in enum_class._member_map_])))
+                            (string_representation, str(enum_class), enum_values_as_string(enum_class)))
 
 
 def assert_equal(l, r):

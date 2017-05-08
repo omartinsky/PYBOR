@@ -23,5 +23,7 @@
 from yc_curvebuilder import *
 from yc_curve import *
 from yc_riskcalculator import *
+from copy import deepcopy
+import re, random
 
 seterr(invalid='raise')  # catch moment when math.nan is generated
