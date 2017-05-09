@@ -1,6 +1,8 @@
 # PYBOR
 PYBOR is a multi-curve interest rate framework and risk engine based on multivariate optimization techniques, written in Python.
 
+Please refer to the [Jupyter notebook](main.ipynb) for the overview of main features.
+
 ## Features
 * Modular structure allows to define and plug-in new market instruments.
 * Based on multivariate optimization, no bootstrapping.
