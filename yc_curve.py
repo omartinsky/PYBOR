@@ -56,6 +56,18 @@ class InterpolationMode(enum.Enum):
     LINEAR_CCZR = 1
     CUBIC_LOGDF = 2
 
+class ExponentialInterpolator:
+    def __init__(self, interp):
+        self.interp = interp
+    def value(self, t):
+        return exp(self.interp(t))
+
+class ZeroRateInterpolator:
+    def __init__(self, interp, t_eval):
+        self.interp = interp
+        self.t_eval = t_eval
+    def value(self, t):
+        return exp(self.interp(t) * (t - self.t_eval))
 
 class Curve:
     def __init__(self, curve_id, eval_date, times, dfs, interpolation_mode):
@@ -92,7 +104,7 @@ class Curve:
         if self.interpolation_mode_ in [InterpolationMode.LINEAR_LOGDF, InterpolationMode.CUBIC_LOGDF]:
             logdf = log(self.dfs_)
             interp = scipy.interpolate.interp1d(self.times_, logdf, kind=kind)
-            self.interpolator_ = lambda t: exp(interp(t))
+            self.interpolator_ = ExponentialInterpolator(interp)
         elif self.interpolation_mode_ in [InterpolationMode.LINEAR_CCZR]:
             t_eval = self.get_eval_date()
             t_rel = self.times_-t_eval
@@ -103,7 +115,7 @@ class Curve:
                 cczr = log(self.dfs_) / t_rel
 
             interp = scipy.interpolate.interp1d(self.times_, cczr, kind=kind)
-            self.interpolator_ = lambda t: exp(interp(t) * (t - t_eval))
+            self.interpolator_ = ZeroRateInterpolator(interp, t_eval)
         else:
             raise BaseException("Invalid interpolation mode")
 
@@ -117,7 +129,7 @@ class Curve:
         return self.id_
 
     def get_df(self, t):
-        return self.interpolator_(t)
+        return self.interpolator_.value(t)
 
     def get_rate(self, t, freq, dcc):
         dfs = self.get_df(t)

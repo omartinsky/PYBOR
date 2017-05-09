@@ -95,12 +95,29 @@ class PriceLadder(collections.OrderedDict):
         return df
 
 
+def calc_residual(curvemap, instrument_prices, instrument):
+    r_actual = instrument.calc_par_rate(curvemap)
+    price = instrument_prices[instrument.name_]
+    r_target = instrument.par_rate_from_price(price)
+    return r_actual - r_target
+
+def calc_residuals(dofs, curve_builder, curvemap, instrument_prices):
+    if curve_builder.progress_monitor:
+        curve_builder.progress_monitor.update()
+    assert not numpy.isnan(dofs).any()
+    curvemap.set_all_dofs(dofs)
+
+    all_instruments = curve_builder.all_instruments
+
+    y = [calc_residual(curvemap, instrument_prices, i) for i in all_instruments]
+    return y
+
 class CurveBuilder:
     def __init__(self, excel_file, eval_date, progress_monitor=None):
         assert os.path.exists(excel_file)
         xl = ExcelFile(excel_file)
-        self.df_instruments = xl.parse('Definition', index_col='Name', parse_cols='A:L').dropna()
-        self.df_curves = xl.parse('Definition', index_col='Curve', parse_cols='N:O').dropna()
+        self.df_instruments = xl.parse('Instrument Properties', index_col='Name', parse_cols='A:L').dropna()
+        self.df_curves = xl.parse('Curve Properties', index_col='Curve', parse_cols='A:B').dropna()
         if (len(self.df_curves) == 0):
             raise BaseException("No curves found in spreadsheet")
         self.curve_templates = list()
@@ -118,12 +135,12 @@ class CurveBuilder:
             for name, row in curve_df.iterrows():
                 try:
                     instrument_type = row['Type']
-                    fcastL = row['FcastCurveL']
-                    fcastR = row['FcastCurveR']
-                    discL = row['DiscCurveL']
-                    discR = row['DiscCurveR']
-                    convL = row['ConventionL']
-                    convR = row['ConventionR']
+                    fcastL = row['Forecast Curve Left']
+                    fcastR = row['Forecast Curve Right']
+                    discL = row['Discount Curve Left']
+                    discR = row['Discount Curve Right']
+                    convL = row['Convention Left']
+                    convR = row['Convention Right']
                     start = row['Start']
                     length = row['Length']
                     enabled = row['Enabled']
@@ -242,20 +259,6 @@ class CurveBuilder:
             raise BaseException("Unknown type")
 
 
-    def calc_residuals(self, dofs, curvemap, instrument_prices):
-        if self.progress_monitor:
-            self.progress_monitor.update()
-        assert not numpy.isnan(dofs).any()
-        curvemap.set_all_dofs(dofs)
-        y = []
-        for instrument in self.all_instruments:
-            r_actual = instrument.calc_par_rate(curvemap)
-            price = instrument_prices[instrument.name_]
-            r_target = instrument.par_rate_from_price(price)
-            y.append(r_actual - r_target)
-        return y
-
-
     def build_curves(self, instrument_prices):
         instrument_prices = self.parse_instrument_prices(instrument_prices)
 
@@ -283,11 +286,11 @@ class CurveBuilder:
         if (self.progress_monitor):
             self.progress_monitor.reset()
 
-        arguments = (curvemap, instrument_prices)
+        arguments = (self, curvemap, instrument_prices)
 
         #solution = scipy.optimize.root(fun=calc_residuals, x0=dofs, args=arguments)
         bounds = (zeros(len(dofs)), ones(len(dofs)))
-        solution = scipy.optimize.least_squares(fun=self.calc_residuals, x0=dofs, args=arguments, bounds=bounds)
+        solution = scipy.optimize.least_squares(fun=calc_residuals, x0=dofs, args=arguments, bounds=bounds)
 
         assert isinstance(solution, scipy.optimize.OptimizeResult)
 
@@ -296,12 +299,12 @@ class CurveBuilder:
         curvemap.set_all_dofs(solution.x)
 
         bump_size = 1e-8
-        e0 = array(self.calc_residuals(solution.x, *arguments))
+        e0 = array(calc_residuals(solution.x, *arguments))
         jacobian_dIdP = []
         for i in range(len(solution.x)):
             bump_vector = zeros(len(solution.x))
             bump_vector[i] += bump_size
-            e = array(self.calc_residuals(solution.x + bump_vector, *arguments))
+            e = array(calc_residuals(solution.x + bump_vector, *arguments))
             jacobian_dIdP.append((e - e0) / bump_size)
         # this jacobian_dIdP contains dI/dP.  Rows=Pillars  Cols=Instruments
         # after inversion, it will contain dP/dI.   Rows=Instruments   Cols=Pillars
