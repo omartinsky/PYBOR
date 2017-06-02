@@ -106,14 +106,10 @@ class Curve:
             interp = scipy.interpolate.interp1d(self.times_, logdf, kind=kind)
             self.interpolator_ = ExponentialInterpolator(interp)
         elif self.interpolation_mode_ in [InterpolationMode.LINEAR_CCZR]:
-            t_eval = self.get_eval_date()
+            t_eval = self.times_[0]
             t_rel = self.times_-t_eval
-            if self.times_[0] == t_eval:
-                cczr1 = log(self.dfs_[1:]) / t_rel[1:]
-                cczr = insert(cczr1, 0, cczr1[1]) # ZZCR at t0 is undefined, take it from t1 instead
-            else:
-                cczr = log(self.dfs_) / t_rel
-
+            cczr1 = log(self.dfs_[1:]) / t_rel[1:]
+            cczr = insert(cczr1, 0, cczr1[0]) # ZZCR at t0 is undefined, take it from t1 instead
             interp = scipy.interpolate.interp1d(self.times_, cczr, kind=kind)
             self.interpolator_ = ZeroRateInterpolator(interp, t_eval)
         else:
@@ -121,9 +117,6 @@ class Curve:
 
     def __str__(self):
         return self.id_
-
-    def get_eval_date(self):
-        return self.times_[0]
 
     def get_id(self):
         return self.id_
