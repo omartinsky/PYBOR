@@ -45,10 +45,10 @@ class CurveMap(collections.OrderedDict):
             v.set_all_dofs(dofs[i:j])
             i = j
 
-    def plot(self, reg=".*"):
+    def plot(self, date_style='ymd', reg=".*"):
         for name, curve in sorted(self.items()):
             if re.match(reg, name):
-                curve.plot()
+                curve.plot(date_style=date_style)
 
 
 class InterpolationMode(enum.Enum):
@@ -165,17 +165,23 @@ class Curve:
     def get_dofs_count(self):
         return len(self.dfs_) - 1
 
-    def plot_df(self, samples=1000):
+    def plot_df(self, date_style='ymd', samples=1000):
         X, Y = [], []
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample
+        assert date_style in ['ymd','excel']
+        if date_style!='excel':
+            X = [fromexceldate(int(x)) for x in X]
         Y = self.get_df(timesample)
         pylab.plot(X, Y, label=self.id_)
 
-    def plot(self, samples=1000):
+    def plot(self, date_style='ymd', samples=1000):
         X, Y = [], []
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
+        assert date_style in ['ymd', 'excel']
+        if date_style!='excel':
+            X = [fromexceldate(int(x)) for x in X]
         conv = conventions[self.id_]
         Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, conv.dcc)
         pylab.plot(X, Y, label=self.id_)
