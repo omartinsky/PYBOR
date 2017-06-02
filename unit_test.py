@@ -45,20 +45,21 @@ class DateTests(unittest.TestCase):
         self.assertEqual(t.unit, 'M')
 
     def test_date_conversion(self):
-        p = date(1970, 1, 3)
+        # Do not test dates before 1900/03/01, because excel incorrectly assumes 1900 is a leap year
+        p = date(1900, 3, 1)
         d = toexceldate(p)
-        self.assertEqual(d, 2)
-        self.assertEqual(fromexceldate(d), date(1970, 1, 3))
+        self.assertEqual(d, 61)
+        self.assertEqual(fromexceldate(d), date(1900, 3, 1))
 
     def test_date_creation(self):
         self.assertEqual(create_date(43000), 43000)
         self.assertEqual(create_date('E', 43000), 43000)
         self.assertEqual(create_date('1M', 43000), 43030)
         self.assertEqual(create_date('E+1M', 43000), 43030)
-        self.assertEqual(create_date('E+E+1Y+1M', 43000), 43396)
-        self.assertEqual(create_date('1970-01-03'), 2)
-        self.assertEqual(create_date('1970/01/03'), 2)
-        self.assertEqual(create_date('19700103'), 2)
+        self.assertEqual(create_date('E+E+1Y+1M', 43000), 43395)
+        self.assertEqual(create_date('1970-01-03'), 25571)
+        self.assertEqual(create_date('1970/01/03'), 25571)
+        self.assertEqual(create_date('19700103'), 25571)
 
     def test_dcc(self):
         ACT360 = DCC.ACT360
@@ -99,7 +100,10 @@ class CurveInterpolationTest(unittest.TestCase):
         self.assertEqual(c.get_id(), 'libor')
         aae(c.get_df([0, 1, 2]), [1, .98, .975])
         aae(c.get_df([1.3, 1.9]), [0.9784973, 0.9754988])
-        aae(c.get_rate(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365), [1.868445, 1.8698797])
+        aae(c.get_rate(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365),       [ 1.868445,   1.8698797])
+        aae(c.get_rate(array([1, 1.3, 1.9]), CouponFreq.CONTINUOUS, DCC.ACT365), [ 1.8670117,  1.8670117])
+        aae(c.get_zero_rate(array([1]), CouponFreq.ZERO, DCC.ACT365), [(1/.98 - 1.) * 365.])
+        aae(c.get_zero_rate(array([1]), CouponFreq.CONTINUOUS, DCC.ACT365), [-log(.98) * 365.])
 
     def test_curve_linear_cczr(self):
         self.assertRaises(BaseException, lambda: Curve('libor', array([0, 1]), array([1, 0.8])))
@@ -149,7 +153,7 @@ class CurveConstructorTests(unittest.TestCase):
 
 class BuilderCompositeTests(unittest.TestCase):
     def test_builder(self):
-        eval_date = toexceldate(date(1970, 1, 1))
+        eval_date = 42000
         curve_builder = CurveBuilder('engine_test.xlsx', eval_date)
         self.assertEqual(curve_builder.get_curve_names(), ['USDLIBOR3M', 'USDLIBOR6M', 'USD-USDOIS'])
         self.assertEqual(len(list(curve_builder.curve_templates)), 3)
@@ -161,7 +165,7 @@ class BuilderCompositeTests(unittest.TestCase):
         s_ois = 'USD-USDOIS'
         constructor = CurveConstructor.FromShortRateModel
         interp = InterpolationMode.LINEAR_LOGDF
-        t = [i for i in range(0, 80*365+1, 10)]
+        t = [i for i in range(eval_date+0, eval_date+80*365+1, 10)]
 
         random.seed(1)
         libor3 = constructor(s_libor3, t, r0=.022, speed=0.0001, mean=.05, sigma=0.0005, interpolation=interp)
@@ -177,14 +181,15 @@ class BuilderCompositeTests(unittest.TestCase):
         self.assertEqual(type(target_prices), PriceLadder)
         build_output = curve_builder.build_curves(target_prices)
         self.assertEqual(len(build_output.output_curvemap), 3)
-        actual_libor3_df = build_output.output_curvemap[s_libor3].get_df(linspace(0, 80, 15))
-        actual_sonia_df = build_output.output_curvemap[s_ois].get_df(linspace(0, 80, 15))
-        expected_libor3_df = array([1.0, 0.999654297582, 0.999308714674, 0.998963251235, 0.998617907224, 0.998272682599,
-                                    0.997927577319, 0.997582591342, 0.997237724628, 0.996892977136, 0.996548348823,
-                                    0.996203839649, 0.995859449573, 0.995515178553, 0.995171026549])
-        expected_sonia_df = array([1.0, 0.999685632814, 0.999371371753, 0.999057209484, 0.998743145974, 0.998429181193,
-                                   0.998114926351, 0.997800483168, 0.997486139045, 0.997171893953, 0.996857747859,
-                                   0.996542988182, 0.996227984919, 0.995913081227, 0.995598277075])
+        test_pillars = linspace(eval_date+0, eval_date+50*365, 15)
+        actual_libor3_df = build_output.output_curvemap[s_libor3].get_df(test_pillars)
+        actual_sonia_df = build_output.output_curvemap[s_ois].get_df(test_pillars)
+        expected_libor3_df = array([ 1.       ,  0.9241786,  0.8519254,  0.7797185,  0.7137857,
+                                     0.6571811,  0.6068582,  0.5604792,  0.5197031,  0.4817571,
+                                     0.4462411,  0.4123828,  0.3801056,  0.3496477,  0.3209613])
+        expected_sonia_df = array([ 1.       ,  0.9356299,  0.874368 ,  0.817277 ,  0.765599 ,
+                                    0.7161831,  0.6701862,  0.6274214,  0.5870785,  0.5493284,
+                                    0.5138205,  0.4798847,  0.4483415,  0.4194495,  0.3932068])
 
         self.maxDiff = None
         aae(actual_libor3_df, expected_libor3_df)
@@ -199,13 +204,18 @@ class BuilderCompositeTests(unittest.TestCase):
 
         numpy.testing.assert_equal(len(bumped_curves), len(bumped_curves_jacobian))
 
-
+        test_pillars = linspace(eval_date + 30, eval_date + 50 * 365, 15)
         for curve_name in sorted(bumped_curves):
+            c0 = build_output.output_curvemap[curve_name]
             c1 = bumped_curves[curve_name]
             c2 = bumped_curves_jacobian[curve_name]
-            df1 = c1.get_df(linspace(0,80,15))
-            df2 = c2.get_df(linspace(0,80,15))
-            aae(df1, df2)
+            zr0 = c0.get_zero_rate(test_pillars, CouponFreq.CONTINUOUS, DCC.ACT365)
+            zr1 = c1.get_zero_rate(test_pillars, CouponFreq.CONTINUOUS, DCC.ACT365)
+            zr2 = c2.get_zero_rate(test_pillars, CouponFreq.CONTINUOUS, DCC.ACT365)
+            bumpdiff = max(abs((zr2 - zr0) / zr0))
+            error = max(abs((zr2 - zr1) / zr1))
+            self.assertLess(error, bumpdiff / 100.)
+
 
 if __name__ == '__main__':
     if is_running_under_teamcity():

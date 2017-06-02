@@ -40,15 +40,14 @@ class Tenor:
     def __str__(self):
         return self.string
 
+excelBaseDate = date(1899, 12, 30)
 
 def toexceldate(d):
-    return int((d - date(1970, 1, 1)).days)
-
+    return int((d - excelBaseDate).days)
 
 def fromexceldate(d):
     assert_type(d, int)
-    return date(1970, 1, 1) + relativedelta(days=d)
-
+    return excelBaseDate + relativedelta(days=d)
 
 def add_tenor_to_date(date, tenor):
     assert_type(date, int)

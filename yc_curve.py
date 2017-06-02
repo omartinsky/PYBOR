@@ -134,7 +134,16 @@ class Curve:
         except BaseException as ex:
             raise BaseException("Unable to get discount factor for dates [%i..%i] from curve with dates range [%i..%i]" % (t[0],t[-1],self.times_[0], self.times_[-1])) from ex
 
-    def get_rate(self, t, freq, dcc):
+    def get_zero_rate(self, t, freq, dcc):
+        dfs = self.get_df(t)
+        dcf = calculate_dcf(self.times_[0], t, dcc)
+        print(dcf)
+        if freq == CouponFreq.ZERO:
+            return (1. / dfs - 1.) / dcf
+        if freq == CouponFreq.CONTINUOUS:
+            return -log(dfs) / dcf
+
+    def get_rate(self, t, freq, dcc): #TODO rename to get_fwd_rate
         dfs = self.get_df(t)
         t1 = t[:-1]
         t2 = t[1:]

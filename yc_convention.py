@@ -30,9 +30,9 @@ class DCC(enum.Enum):
 
     def get_denominator(self):
         if self == DCC.ACT360:
-            return 360
+            return 360.
         elif self == DCC.ACT365:
-            return 365
+            return 365.
         assert False
 
 
