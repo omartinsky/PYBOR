@@ -55,8 +55,8 @@ class BasisSwap(Instrument):
         fcurve_l = curvemap[self.curve_forecast_l_]
         fcurve_r = curvemap[self.curve_forecast_r_]
         dcurve = curvemap[self.curve_discount_]
-        rl = fcurve_l.get_rate(self.accruals_l_, CouponFreq.ZERO, self.convention_l_.dcc)
-        rr = fcurve_r.get_rate(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
+        rl = fcurve_l.get_fwd_rate(self.accruals_l_, CouponFreq.ZERO, self.convention_l_.dcc)
+        rr = fcurve_r.get_fwd_rate(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
         df_l = dcurve.get_df(self.accruals_l_)
         df_r = dcurve.get_df(self.accruals_r_)
         nominator_l = sum(rl * self.dcf_l_ * df_l[1:])

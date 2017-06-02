@@ -100,8 +100,8 @@ class CurveInterpolationTest(unittest.TestCase):
         self.assertEqual(c.get_id(), 'libor')
         aae(c.get_df([0, 1, 2]), [1, .98, .975])
         aae(c.get_df([1.3, 1.9]), [0.9784973, 0.9754988])
-        aae(c.get_rate(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365),       [ 1.868445,   1.8698797])
-        aae(c.get_rate(array([1, 1.3, 1.9]), CouponFreq.CONTINUOUS, DCC.ACT365), [ 1.8670117,  1.8670117])
+        aae(c.get_fwd_rate(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365), [1.868445, 1.8698797])
+        aae(c.get_fwd_rate(array([1, 1.3, 1.9]), CouponFreq.CONTINUOUS, DCC.ACT365), [1.8670117, 1.8670117])
         aae(c.get_zero_rate(array([1]), CouponFreq.ZERO, DCC.ACT365), [(1/.98 - 1.) * 365.])
         aae(c.get_zero_rate(array([1]), CouponFreq.CONTINUOUS, DCC.ACT365), [-log(.98) * 365.])
 

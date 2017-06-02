@@ -143,7 +143,7 @@ class Curve:
         if freq == CouponFreq.CONTINUOUS:
             return -log(dfs) / dcf
 
-    def get_rate(self, t, freq, dcc): #TODO rename to get_fwd_rate
+    def get_fwd_rate(self, t, freq, dcc):
         dfs = self.get_df(t)
         t1 = t[:-1]
         t2 = t[1:]
@@ -177,7 +177,7 @@ class Curve:
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
         conv = conventions[self.id_]
-        Y = self.get_rate(timesample, CouponFreq.CONTINUOUS, conv.dcc)
+        Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, conv.dcc)
         pylab.plot(X, Y, label=self.id_)
 
 class CurveConstructor:

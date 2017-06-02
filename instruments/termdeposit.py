@@ -46,7 +46,7 @@ class TermDeposit(Instrument):
     def calc_par_rate(self, curvemap):
         fcurve = curvemap[self.curve_forecast_]
         dcurve = curvemap[self.curve_discount_]
-        r = fcurve.get_rate(self.accruals_, CouponFreq.ZERO, self.convention_.dcc)
+        r = fcurve.get_fwd_rate(self.accruals_, CouponFreq.ZERO, self.convention_.dcc)
         df = dcurve.get_df(self.accruals_)
         nominator = sum(r * self.dcf_ * df[1:])
         denumerator = sum(self.dcf_ * df[1:])

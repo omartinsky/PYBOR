@@ -49,7 +49,7 @@ class Swap(Instrument):
     def calc_par_rate(self, curvemap):
         fcurve = curvemap[self.curve_forecast_]
         dcurve = curvemap[self.curve_discount_]
-        r = fcurve.get_rate(self.accruals_float_, CouponFreq.ZERO, self.convention_float_.dcc)
+        r = fcurve.get_fwd_rate(self.accruals_float_, CouponFreq.ZERO, self.convention_float_.dcc)
         df = dcurve.get_df(self.accruals_fixed_)
         nominator = sum(r * self.dcf_float_ * df[1:])
         denumerator = sum(self.dcf_fixed_ * df[1:])
