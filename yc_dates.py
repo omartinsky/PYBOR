@@ -42,7 +42,7 @@ class Tenor:
 
 
 def toexceldate(d):
-    return int((d - date(1970, 1, 1)).total_seconds() / (60 * 60 * 24))
+    return int((d - date(1970, 1, 1)).days)
 
 
 def fromexceldate(d):
@@ -61,7 +61,7 @@ def create_date(arg, reference_date=None):
         return arg
     elif isinstance(arg, date):
         return toexceldate(arg)
-    elif isinstance(arg, str) and arg[0:4].isdigit() and arg[4]=='-': # e.g. '1970-*'
+    elif isinstance(arg, str) and arg[0:4].isdigit():
         return toexceldate(dateutil.parser.parse(arg).date())
     elif isinstance(arg, str):
         assert reference_date is not None

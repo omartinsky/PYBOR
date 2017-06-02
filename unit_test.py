@@ -57,6 +57,8 @@ class DateTests(unittest.TestCase):
         self.assertEqual(create_date('E+1M', 43000), 43030)
         self.assertEqual(create_date('E+E+1Y+1M', 43000), 43396)
         self.assertEqual(create_date('1970-01-03'), 2)
+        self.assertEqual(create_date('1970/01/03'), 2)
+        self.assertEqual(create_date('19700103'), 2)
 
     def test_dcc(self):
         ACT360 = DCC.ACT360
@@ -105,6 +107,7 @@ class CurveInterpolationTest(unittest.TestCase):
         self.assertEqual(c.get_id(), 'libor')
         aae(c.get_df([0, 1, 2]), [1, .98, .975])
         aae(c.get_df([1.3, 1.9]), [0.9769484, 0.9748368])
+        self.assertRaises(BaseException, lambda: c.get_df([3, 4]))
 
     def test_curve_cubic_logdf(self):
         self.assertRaises(BaseException, lambda: Curve('libor', array([0, 1]), array([1, 0.8])))
