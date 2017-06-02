@@ -129,7 +129,10 @@ class Curve:
         return self.id_
 
     def get_df(self, t):
-        return self.interpolator_.value(t)
+        try:
+            return self.interpolator_.value(t)
+        except BaseException as ex:
+            raise BaseException("Unable to get discount factor for dates [%i..%i] from curve with dates range [%i..%i]" % (t[0],t[-1],self.times_[0], self.times_[-1])) from ex
 
     def get_rate(self, t, freq, dcc):
         dfs = self.get_df(t)
@@ -155,14 +158,14 @@ class Curve:
 
     def plot_df(self, samples=1000):
         X, Y = [], []
-        timesample = linspace(0, self.times_[-1], samples)
+        timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample
         Y = self.get_df(timesample)
         pylab.plot(X, Y, label=self.id_)
 
     def plot(self, samples=1000):
         X, Y = [], []
-        timesample = linspace(0, self.times_[-1], samples)
+        timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
         conv = conventions[self.id_]
         Y = self.get_rate(timesample, CouponFreq.CONTINUOUS, conv.dcc)
