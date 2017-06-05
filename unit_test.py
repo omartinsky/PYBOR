@@ -76,7 +76,8 @@ class InstrumentTests(unittest.TestCase):
         i = Deposit(name='USDLIBOR3M/Deposit/3M',
                     curve_forecast='USDLIBOR3M',
                     start=create_date('E', 1),
-                    len=Tenor('6M'))
+                    len=Tenor('6M'),
+                    convention=Convention(Tenor("3M"), Tenor("3M"), CalculationType.PLAIN, DCC.ACT365))
         aae(i.calc_par_rate(cm), .058774765557153198)
 
 class PriceLadderTest(unittest.TestCase):

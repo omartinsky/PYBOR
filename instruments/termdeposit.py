@@ -35,7 +35,7 @@ class TermDeposit(Instrument):
         self.start_ = start
         self.end_ = date_step(self.start_, length.n, length.unit)
         self.accruals_ = generate_schedule(self.start_, self.end_, self.convention_.payment_frequency)
-        self.dcf_ = calculate_dcfs(self.accruals_)
+        self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)
 
     def get_start_date(self):
         return self.start_

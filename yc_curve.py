@@ -130,7 +130,6 @@ class Curve:
     def get_zero_rate(self, t, freq, dcc):
         dfs = self.get_df(t)
         dcf = calculate_dcf(self.times_[0], t, dcc)
-        print(dcf)
         if freq == CouponFreq.ZERO:
             return (1. / dfs - 1.) / dcf
         if freq == CouponFreq.CONTINUOUS:

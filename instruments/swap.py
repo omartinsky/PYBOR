@@ -37,8 +37,8 @@ class Swap(Instrument):
         self.end_ = date_step(self.start_, length.n, length.unit)
         self.accruals_fixed_ = generate_schedule(self.start_, self.end_, self.convention_fixed_.payment_frequency)
         self.accruals_float_ = generate_schedule(self.start_, self.end_, self.convention_float_.payment_frequency)
-        self.dcf_fixed_ = calculate_dcfs(self.accruals_fixed_)
-        self.dcf_float_ = calculate_dcfs(self.accruals_float_)
+        self.dcf_fixed_ = calculate_dcfs(self.accruals_fixed_, self.convention_fixed_.dcc)
+        self.dcf_float_ = calculate_dcfs(self.accruals_float_, self.convention_float_.dcc)
 
     def get_start_date(self):
         return self.start_

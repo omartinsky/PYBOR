@@ -156,7 +156,8 @@ class CurveBuilder:
                         inst = Deposit(name,
                                        curve_forecast=fcastL,
                                        start=create_date(start, eval_date),
-                                       len=Tenor(length))
+                                       len=Tenor(length),
+                                       convention=conventions[convL])
                     elif instrument_type == 'Future':
                         assert (discL == "na")
                         assert (discR == "na")
@@ -165,7 +166,8 @@ class CurveBuilder:
                         inst = Future(name,
                                       curve_forecast=fcastL,
                                       start=create_date(start, eval_date),
-                                      len=Tenor(length))
+                                      len=Tenor(length),
+                                      convention=conventions[convL])
                     elif instrument_type == 'Swap':
                         assert (discL != "na")
                         assert (discR == "na")

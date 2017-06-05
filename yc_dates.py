@@ -79,9 +79,9 @@ def create_date(arg, reference_date=None):
     assert False, (type(arg), arg)
 
 
-def calculate_dcfs(dates):
+def calculate_dcfs(dates, dcc):
     numerator = dates[1:] - dates[:-1]
-    return numerator / 365. # TODO
+    return numerator / dcc.get_denominator()
 
 
 def calculate_dcf(date0, date1, dcc):

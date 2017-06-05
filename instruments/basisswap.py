@@ -23,8 +23,7 @@ from instruments.base_instrument import *
 
 
 class BasisSwap(Instrument):
-    def __init__(self, name, curve_forecast_l, curve_forecast_r, curve_discount, start, length, convention_l,
-                 convention_r):
+    def __init__(self, name, curve_forecast_l, curve_forecast_r, curve_discount, start, length, convention_l, convention_r):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast_l, str)
@@ -41,8 +40,8 @@ class BasisSwap(Instrument):
         self.end_ = date_step(self.start_, length.n, length.unit)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)
-        self.dcf_l_ = calculate_dcfs(self.accruals_l_)
-        self.dcf_r_ = calculate_dcfs(self.accruals_r_)
+        self.dcf_l_ = calculate_dcfs(self.accruals_l_, self.convention_l_.dcc)
+        self.dcf_r_ = calculate_dcfs(self.accruals_r_, self.convention_r_.dcc)
 
     def get_start_date(self):
         return self.start_

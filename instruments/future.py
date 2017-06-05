@@ -22,7 +22,7 @@
 from instruments.base_instrument import *
 
 class Future(Instrument):
-    def __init__(self, name, curve_forecast, start, len):
+    def __init__(self, name, curve_forecast, start, len, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
@@ -30,7 +30,7 @@ class Future(Instrument):
         self.start_ = start
         self.end_ = date_step(self.start_, len.n, len.unit)
         self.accruals_ = array([self.start_, self.end_])
-        self.dcf_ = calculate_dcfs(self.accruals_)[0]
+        self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
 
     def get_start_date(self):
         return self.start_
