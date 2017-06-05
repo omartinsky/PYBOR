@@ -20,8 +20,8 @@
 # SOFTWARE.
 
 
-def assert_type(obj, expected_type):
-    assert isinstance(obj, expected_type), "Unexpected type %s" % str(type(obj))
+def assert_type(obj, expected_type, allowNone=False):
+    assert (allowNone and obj is None) or isinstance(obj, expected_type), "Unexpected type %s" % str(type(obj))
 
 
 def enum_values(enum_class):

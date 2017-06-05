@@ -61,7 +61,7 @@ class Convention:
         self.dcc = dcc
 
 
-conventions = {
+global_conventions = {
     'USDLIBOR3M':             Convention(Tenor("3M"), Tenor("3M"), CalculationType.PLAIN, DCC.ACT360),
     'USDLIBOR6M':             Convention(Tenor("6M"), Tenor("6M"), CalculationType.PLAIN, DCC.ACT360),
     'USDLIBOR12M':            Convention(Tenor("12M"), Tenor("12M"), CalculationType.PLAIN, DCC.ACT360),

@@ -157,7 +157,7 @@ class CurveBuilder:
                                        curve_forecast=fcastL,
                                        start=create_date(start, eval_date),
                                        len=Tenor(length),
-                                       convention=conventions[convL])
+                                       convention=global_conventions[convL])
                     elif instrument_type == 'Future':
                         assert (discL == "na")
                         assert (discR == "na")
@@ -167,7 +167,7 @@ class CurveBuilder:
                                       curve_forecast=fcastL,
                                       start=create_date(start, eval_date),
                                       len=Tenor(length),
-                                      convention=conventions[convL])
+                                      convention=global_conventions[convL])
                     elif instrument_type == 'Swap':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -178,8 +178,8 @@ class CurveBuilder:
                                     curve_discount=discL,
                                     start=create_date(start, eval_date),
                                     length=Tenor(length),
-                                    convention_fixed=conventions[convL],
-                                    convention_float=conventions[convR])
+                                    convention_fixed=global_conventions[convL],
+                                    convention_float=global_conventions[convR])
                     elif instrument_type == 'BasisSwap':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -191,8 +191,8 @@ class CurveBuilder:
                                          curve_discount=discL,
                                          start=create_date(start, eval_date),
                                          length=Tenor(length),
-                                         convention_l=conventions[convL],
-                                         convention_r=conventions[convR])
+                                         convention_l=global_conventions[convL],
+                                         convention_r=global_conventions[convR])
                     elif instrument_type == 'CrossCurrencySwap':
                         assert (discL != "na")
                         assert (discR != "na")
@@ -203,8 +203,8 @@ class CurveBuilder:
                                                  curve_forecast_r=fcastR if fcastR != "na" else fcastL,
                                                  start=create_date(start, eval_date),
                                                  length=Tenor(length),
-                                                 convention_l=conventions[convL],
-                                                 convention_r=conventions[convR])
+                                                 convention_l=global_conventions[convL],
+                                                 convention_r=global_conventions[convR])
                     elif instrument_type == 'TermDeposit':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -215,7 +215,7 @@ class CurveBuilder:
                                            curve_discount=discL,
                                            start=create_date(start, eval_date),
                                            length=Tenor(length),
-                                           convention=conventions[convL])
+                                           convention=global_conventions[convL])
                     else:
                         raise BaseException("Unknown instrument type %s" % instrument_type)
                 except BaseException as ex:
@@ -281,7 +281,7 @@ class CurveBuilder:
             print("Creating pillars %i - %i for curve %s" % (pillar_count, pillar_count + len(pillar), curve_name))
             pillar_count += len(pillar)
             curve = Curve(curve_name, self.eval_date, pillar, dfs, interpolation)
-            curvemap[curve_name] = curve
+            curvemap.add_curve(curve)
 
         dofs = curvemap.get_all_dofs()
 

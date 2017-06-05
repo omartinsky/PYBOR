@@ -122,6 +122,18 @@ class CurveInterpolationTest(unittest.TestCase):
         aae(c.get_df([1.3, 1.9]), [3.845169 ,  2.2995965])
         #aae(c.get_df([1.3, 1.9]), [3.8450911,  2.2995577])  
 
+class CurveMapTests(unittest.TestCase):
+    def test_plot(self):
+        c1 = Curve('USDLIBOR3M', 0, array([0.001, 1, 2]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        c2 = Curve('USDLIBOR6M', 0, array([0.002, 3, 4]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        cm = CurveMap()
+        cm.add_curve(c1)
+        cm.add_curve(c2)
+        self.assertEqual(len(cm), 2)
+        self.assertEqual(sorted(cm.keys()), ['USDLIBOR3M','USDLIBOR6M'])
+        cm.plot()
+
+
 class CurveConstructorTests(unittest.TestCase):
     def test_short_rate_model(self):
         random.seed(1)
@@ -206,7 +218,7 @@ class BuilderCompositeTests(unittest.TestCase):
         numpy.testing.assert_equal(len(bumped_curves), len(bumped_curves_jacobian))
 
         test_pillars = linspace(eval_date + 30, eval_date + 50 * 365, 15)
-        for curve_name in sorted(bumped_curves):
+        for curve_name in sorted(bumped_curves.keys()):
             c0 = build_output.output_curvemap[curve_name]
             c1 = bumped_curves[curve_name]
             c2 = bumped_curves_jacobian[curve_name]

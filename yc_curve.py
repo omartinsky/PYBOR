@@ -24,29 +24,39 @@ from yc_convention import *
 import scipy.interpolate
 import pylab, re, collections
 
-class CurveMap(collections.OrderedDict):
+class CurveMap:
     def __init__(self, *arg, **kw):
         super(CurveMap, self).__init__(*arg, **kw)
+        self.curves_ = collections.OrderedDict()
 
     def add_curve(self, c):
         assert_type(c, Curve)
-        self[c.get_id()] = c
+        self.curves_[c.get_id()] = c
 
     def get_all_dofs(self):
         dofs = list()
-        for k, v in self.items():
+        for k, v in self.curves_.items():
             dofs.extend(v.get_all_dofs())
         return dofs
 
     def set_all_dofs(self, dofs):
         i = 0
-        for k, v in self.items():
+        for k, v in self.curves_.items():
             j = i + v.get_dofs_count()
             v.set_all_dofs(dofs[i:j])
             i = j
 
+    def __getitem__(self, item):
+        return self.curves_[item]
+
+    def __len__(self):
+        return len(self.curves_)
+
+    def keys(self):
+        return self.curves_.keys()
+
     def plot(self, date_style='ymd', reg=".*"):
-        for name, curve in sorted(self.items()):
+        for name, curve in sorted(self.curves_.items()):
             if re.match(reg, name):
                 curve.plot(date_style=date_style)
 
@@ -174,8 +184,8 @@ class Curve:
         assert date_style in ['ymd', 'excel']
         if date_style!='excel':
             X = [fromexceldate(int(x)) for x in X]
-        conv = conventions[self.id_]
-        Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, conv.dcc)
+        convention = global_conventions[self.id_]
+        Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, convention.dcc)
         pylab.plot(X, Y, label=self.id_)
 
 class CurveConstructor:
