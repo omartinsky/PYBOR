@@ -27,7 +27,7 @@ from instruments.crosscurrencyswap import *
 from instruments.swap import *
 from instruments.termdeposit import *
 import numpy
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 from pandas import *
 import scipy.optimize
@@ -101,15 +101,13 @@ def calc_residual(curvemap, instrument_prices, instrument):
     r_target = instrument.par_rate_from_price(price)
     return r_actual - r_target
 
-def calc_residuals(dofs, curve_builder, curvemap, instrument_prices):
+def calc_residuals(dofs, curve_builder, curvemap, instrument_prices, curves_for_stage, instruments_for_stage):
     if curve_builder.progress_monitor:
         curve_builder.progress_monitor.update()
     assert not numpy.isnan(dofs).any()
-    curvemap.set_all_dofs(dofs)
+    curvemap.set_all_dofs(curves_for_stage, dofs)
 
-    all_instruments = curve_builder.all_instruments
-
-    y = [calc_residual(curvemap, instrument_prices, i) for i in all_instruments]
+    y = [calc_residual(curvemap, instrument_prices, i) for i in instruments_for_stage]
     return y
 
 class CurveBuilder:
@@ -117,7 +115,7 @@ class CurveBuilder:
         assert os.path.exists(excel_file)
         xl = ExcelFile(excel_file)
         self.df_instruments = xl.parse('Instrument Properties', index_col='Name', parse_cols='A:L').dropna()
-        self.df_curves = xl.parse('Curve Properties', index_col='Curve', parse_cols='A:B').dropna()
+        self.df_curves = xl.parse('Curve Properties', index_col='Curve', parse_cols='A:C').dropna()
         if (len(self.df_curves) == 0):
             raise BaseException("No curves found in spreadsheet")
         self.curve_templates = list()
@@ -231,10 +229,23 @@ class CurveBuilder:
             self.curve_templates.append(curve_template)
         pass
 
+    def get_solve_stages(self):
+        map = defaultdict(set)
+        for row in self.df_curves.iterrows():
+            curve, stage = row[0], row[1]['Solve Stage']
+            map[stage].add(curve)
+        return [map[i] for i in list(map)]
 
     def get_curve_names(self):
         return [t.curve_name for t in self.curve_templates]
 
+    def get_instruments_for_stage(self, curves_for_stage):
+        instruments_for_stage = []
+        for curve_template in self.curve_templates:
+            if curve_template.curve_name in curves_for_stage:
+                for i in curve_template.instruments:  # TODO get rid of this loop
+                    instruments_for_stage.append(i)
+        return instruments_for_stage
 
     def reprice(self, curvemap):
         out = OrderedDict()
@@ -260,14 +271,9 @@ class CurveBuilder:
         else:
             raise BaseException("Unknown type")
 
-
-    def build_curves(self, instrument_prices):
-        instrument_prices = self.parse_instrument_prices(instrument_prices)
-
-        curvemap = CurveMap()
-
-        # Create unoptimized curve map
+    def create_initial_curvemap(self, initial_rate):
         pillar_count = 0
+        curvemap = CurveMap()
         for curve_template in self.curve_templates:
             pillar = []
             for instrument in curve_template.instruments:
@@ -275,38 +281,53 @@ class CurveBuilder:
                 pillar.append(pillar_date)
             pillar = array(sorted(set(pillar)))
             assert len(pillar) > 0, "Pillars are empty"
-            dfs = exp(-0.02 * (pillar - self.eval_date) / 365.)  # initial rates will be circa 2%
+            dfs = exp(-initial_rate * (pillar - self.eval_date) / 365.)  # initial rates will be circa 2%
             curve_name = curve_template.curve_name
             interpolation = enum_from_string(InterpolationMode, self.df_curves.loc[curve_name].Interpolation)
-            print("Creating pillars %i - %i for curve %s" % (pillar_count, pillar_count + len(pillar), curve_name))
+            #print("Creating pillars %i - %i for curve %s" % (pillar_count, pillar_count + len(pillar), curve_name))
             pillar_count += len(pillar)
             curve = Curve(curve_name, self.eval_date, pillar, dfs, interpolation)
             curvemap.add_curve(curve)
+        return curvemap
 
-        dofs = curvemap.get_all_dofs()
+    def build_curves(self, instrument_prices):
+        instrument_prices = self.parse_instrument_prices(instrument_prices)
 
-        if (self.progress_monitor):
-            self.progress_monitor.reset()
+        curvemap = self.create_initial_curvemap(0.02)   # Create unoptimized curve map
 
-        arguments = (self, curvemap, instrument_prices)
+        stages = self.get_solve_stages()
 
-        #solution = scipy.optimize.root(fun=calc_residuals, x0=dofs, args=arguments)
-        bounds = (zeros(len(dofs)), ones(len(dofs)))
-        solution = scipy.optimize.least_squares(fun=calc_residuals, x0=dofs, args=arguments, bounds=bounds)
+        for stage in stages:
+            curves_for_stage = stage
+            instruments_for_stage = self.get_instruments_for_stage(curves_for_stage)
+            dofs = curvemap.get_all_dofs(curves_for_stage)
+            print("Solving stage containing curves %s (%i pillars)" % (", ".join(sorted(stage)), len(dofs)))
 
-        assert isinstance(solution, scipy.optimize.OptimizeResult)
+            if (self.progress_monitor):
+                self.progress_monitor.reset()
 
-        if not solution.success:
-            raise BaseException(solution.message)
-        curvemap.set_all_dofs(solution.x)
+            arguments = (self, curvemap, instrument_prices, curves_for_stage, instruments_for_stage)
+            bounds = (zeros(len(dofs)), ones(len(dofs)))
+            solution = scipy.optimize.least_squares(fun=calc_residuals, x0=dofs, args=arguments, bounds=bounds)
 
+            assert isinstance(solution, scipy.optimize.OptimizeResult)
+
+            if not solution.success:
+                raise BaseException(solution.message)
+            curvemap.set_all_dofs(curves_for_stage, solution.x)
+
+        # calculate jacobian matrix
         bump_size = 1e-8
-        e0 = array(calc_residuals(solution.x, *arguments))
+        final_solution = curvemap.get_all_dofs(curvemap.keys())
+        all_curves = [curve_template.curve_name for curve_template in self.curve_templates]
+        all_instruments = self.get_instruments_for_stage(all_curves)
+        arguments = (self, curvemap, instrument_prices, all_curves, all_instruments)
+        e0 = array(calc_residuals(final_solution, *arguments))
         jacobian_dIdP = []
-        for i in range(len(solution.x)):
-            bump_vector = zeros(len(solution.x))
+        for i in range(len(final_solution)):
+            bump_vector = zeros(len(final_solution))
             bump_vector[i] += bump_size
-            e = array(calc_residuals(solution.x + bump_vector, *arguments))
+            e = array(calc_residuals(final_solution + bump_vector, *arguments))
             jacobian_dIdP.append((e - e0) / bump_size)
         # this jacobian_dIdP contains dI/dP.  Rows=Pillars  Cols=Instruments
         # after inversion, it will contain dP/dI.   Rows=Instruments   Cols=Pillars

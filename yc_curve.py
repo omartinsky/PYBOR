@@ -33,18 +33,20 @@ class CurveMap:
         assert_type(c, Curve)
         self.curves_[c.get_id()] = c
 
-    def get_all_dofs(self):
+    def get_all_dofs(self, curves_for_stage):
         dofs = list()
         for k, v in self.curves_.items():
-            dofs.extend(v.get_all_dofs())
+            if k in curves_for_stage:
+                dofs.extend(v.get_all_dofs())
         return dofs
 
-    def set_all_dofs(self, dofs):
+    def set_all_dofs(self, curves_for_stage, dofs):
         i = 0
         for k, v in self.curves_.items():
-            j = i + v.get_dofs_count()
-            v.set_all_dofs(dofs[i:j])
-            i = j
+            if k in curves_for_stage:
+                j = i + v.get_dofs_count()
+                v.set_all_dofs(dofs[i:j])
+                i = j
 
     def __getitem__(self, item):
         return self.curves_[item]

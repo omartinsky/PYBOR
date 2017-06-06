@@ -185,10 +185,10 @@ class BuilderCompositeTests(unittest.TestCase):
         random.seed(2)
         libor6 = constructor(s_libor6, t, r0=.022, speed=0.0001, mean=.05, sigma=0.0005, interpolation=interp)
         random.seed(2)
-        sonia = constructor(s_ois, t, r0=.02, speed=0.0001, mean=-.05, sigma=0.0005, interpolation=interp)
+        ois = constructor(s_ois, t, r0=.02, speed=0.0001, mean=-.05, sigma=0.0005, interpolation=interp)
         pricing_curvemap.add_curve(libor3)
         pricing_curvemap.add_curve(libor6)
-        pricing_curvemap.add_curve(sonia)
+        pricing_curvemap.add_curve(ois)
         target_prices = curve_builder.reprice(pricing_curvemap)
         self.assertEqual(len(target_prices), 101)
         self.assertEqual(type(target_prices), PriceLadder)
@@ -198,11 +198,11 @@ class BuilderCompositeTests(unittest.TestCase):
         actual_libor3_df = build_output.output_curvemap[s_libor3].get_df(test_pillars)
         actual_sonia_df = build_output.output_curvemap[s_ois].get_df(test_pillars)
         expected_libor3_df = array([ 1.       ,  0.9241786,  0.8519254,  0.7797185,  0.7137857,
-                                     0.6571811,  0.6068582,  0.5604792,  0.5197031,  0.4817571,
-                                     0.4462411,  0.4123828,  0.3801056,  0.3496477,  0.3209613])
+                                     0.6571811,  0.6068583,  0.5604794,  0.5197033,  0.4817573,
+                                     0.4462414,  0.4123832,  0.3801059,  0.3496478,  0.3209614])
         expected_sonia_df = array([ 1.       ,  0.9356299,  0.874368 ,  0.817277 ,  0.765599 ,
-                                    0.7161831,  0.6701862,  0.6274214,  0.5870785,  0.5493284,
-                                    0.5138205,  0.4798847,  0.4483415,  0.4194495,  0.3932068])
+                                    0.7161831,  0.6701864,  0.6274217,  0.587079 ,  0.5493289,
+                                    0.5138211,  0.4798852,  0.4483419,  0.4194498,  0.393207 ])
 
         self.maxDiff = None
         aae(actual_libor3_df, expected_libor3_df)

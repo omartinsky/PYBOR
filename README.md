@@ -34,7 +34,7 @@ Few examples:
 
 
 ## TODO
-* Solve stages for global optimizer (performance gain)
+* Automatic resolution of solve stages for global optimizer
 * Proper market conventions (day count and calendar roll conventions)
 * Smoothing penalty functions
 * Risk transformation between different instrument ladders

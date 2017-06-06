@@ -89,8 +89,8 @@ class RiskCalculator:
         assert responses.shape[0] == 1  # just one row
         responses = squeeze(array(responses))
 
-        dfs = curvemap_bumped.get_all_dofs()
+        dfs = curvemap_bumped.get_all_dofs(curvemap_bumped.keys())
         dfs += responses
-        curvemap_bumped.set_all_dofs(dfs)
+        curvemap_bumped.set_all_dofs(curvemap_bumped.keys(), dfs)
 
         return curvemap_bumped
