@@ -21,6 +21,7 @@
 
 from instruments.base_instrument import *
 
+# Example: Fixed GBP vs. Floating USD.LIBOR.3M
 
 class CrossCurrencySwap(Instrument):
     def __init__(self, name, curve_discount_l, curve_discount_r, curve_forecast_r, start, length,
@@ -51,7 +52,6 @@ class CrossCurrencySwap(Instrument):
         return self.end_
 
     def calc_par_rate(self, curvemap):
-        # Price of instrument is basis which is added to LIBOR3M curve
         fcurve_r = curvemap[self.curve_forecast_r_]
         dcurve_l = curvemap[self.curve_discount_l_]
         dcurve_r = curvemap[self.curve_discount_r_]

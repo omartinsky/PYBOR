@@ -155,7 +155,7 @@ class CurveBuilder:
                                        curve_forecast=fcastL,
                                        start=create_date(start, eval_date),
                                        len=Tenor(length),
-                                       convention=global_conventions[convL])
+                                       convention=global_conventions.get(convL))
                     elif instrument_type == 'Future':
                         assert (discL == "na")
                         assert (discR == "na")
@@ -165,7 +165,7 @@ class CurveBuilder:
                                       curve_forecast=fcastL,
                                       start=create_date(start, eval_date),
                                       len=Tenor(length),
-                                      convention=global_conventions[convL])
+                                      convention=global_conventions.get(convL))
                     elif instrument_type == 'Swap':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -176,8 +176,8 @@ class CurveBuilder:
                                     curve_discount=discL,
                                     start=create_date(start, eval_date),
                                     length=Tenor(length),
-                                    convention_fixed=global_conventions[convL],
-                                    convention_float=global_conventions[convR])
+                                    convention_fixed=global_conventions.get(convL),
+                                    convention_float=global_conventions.get(convR))
                     elif instrument_type == 'BasisSwap':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -189,20 +189,21 @@ class CurveBuilder:
                                          curve_discount=discL,
                                          start=create_date(start, eval_date),
                                          length=Tenor(length),
-                                         convention_l=global_conventions[convL],
-                                         convention_r=global_conventions[convR])
+                                         convention_l=global_conventions.get(convL),
+                                         convention_r=global_conventions.get(convR))
                     elif instrument_type == 'CrossCurrencySwap':
                         assert (discL != "na")
                         assert (discR != "na")
-                        assert (fcastL == 'na') != (fcastR == 'na')
+                        assert (fcastL == 'na')
+                        assert (fcastR != 'na')
                         inst = CrossCurrencySwap(name,
-                                                 curve_discount_l=discL if fcastR != "na" else discR,
-                                                 curve_discount_r=discR if fcastR != "na" else discL,
-                                                 curve_forecast_r=fcastR if fcastR != "na" else fcastL,
+                                                 curve_discount_l=discL,
+                                                 curve_discount_r=discR,
+                                                 curve_forecast_r=fcastR,
                                                  start=create_date(start, eval_date),
                                                  length=Tenor(length),
-                                                 convention_l=global_conventions[convL],
-                                                 convention_r=global_conventions[convR])
+                                                 convention_l=global_conventions.get(convL),
+                                                 convention_r=global_conventions.get(convR))
                     elif instrument_type == 'TermDeposit':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -213,7 +214,7 @@ class CurveBuilder:
                                            curve_discount=discL,
                                            start=create_date(start, eval_date),
                                            length=Tenor(length),
-                                           convention=global_conventions[convL])
+                                           convention=global_conventions.get(convL))
                     else:
                         raise BaseException("Unknown instrument type %s" % instrument_type)
                 except BaseException as ex:
@@ -297,11 +298,10 @@ class CurveBuilder:
 
         stages = self.get_solve_stages()
 
-        for stage in stages:
-            curves_for_stage = stage
+        for iStage, curves_for_stage in enumerate(stages):
             instruments_for_stage = self.get_instruments_for_stage(curves_for_stage)
             dofs = curvemap.get_all_dofs(curves_for_stage)
-            print("Solving stage containing curves %s (%i pillars)" % (", ".join(sorted(stage)), len(dofs)))
+            print("Solving stage %i/%i containing curves %s (%i pillars)" % (iStage+1, len(stages), ", ".join(sorted(curves_for_stage)), len(dofs)))
 
             if (self.progress_monitor):
                 self.progress_monitor.reset()
@@ -333,6 +333,7 @@ class CurveBuilder:
         # after inversion, it will contain dP/dI.   Rows=Instruments   Cols=Pillars
         jacobian_dIdP = matrix(jacobian_dIdP)
 
+        print("Done")
         return BuildOutput(instrument_prices, curvemap, jacobian_dIdP, self.all_instruments)
 
     def get_instrument_by_name(self, name):

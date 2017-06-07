@@ -21,9 +21,10 @@
 
 from instruments.base_instrument import *
 
+# Example: USD.LIBOR.3M vs. USD.LIBOR.6M + spread
 
 class BasisSwap(Instrument):
-    def __init__(self, name, curve_forecast_l, curve_forecast_r, curve_discount, start, length, convention_l, convention_r):
+    def __init__(self, name, curve_discount, curve_forecast_l, curve_forecast_r, start, length, convention_l, convention_r):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast_l, str)

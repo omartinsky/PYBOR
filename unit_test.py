@@ -68,6 +68,10 @@ class DateTests(unittest.TestCase):
         self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT365), 366/365)
         self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT360), 366/360)
 
+class ConventionsTest(unittest.TestCase):
+    def convention_test(self):
+        conventions = Conventions.FromSpreadsheet('conventions.xlsx')
+
 class InstrumentTests(unittest.TestCase):
     def test_deposit(self):
         cm = {
@@ -77,8 +81,19 @@ class InstrumentTests(unittest.TestCase):
                     curve_forecast='USDLIBOR3M',
                     start=create_date('E', 1),
                     len=Tenor('6M'),
-                    convention=Convention(Tenor("3M"), Tenor("3M"), CalculationType.PLAIN, DCC.ACT365))
+                    convention=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT365))
         aae(i.calc_par_rate(cm), .058774765557153198)
+
+    def test_future(self):
+        cm = {
+            'USDLIBOR3M' : Curve('USDLIBOR3M', 0, array([250, 500,750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
+        }
+        i = Future(name="Future",
+                    curve_forecast='USDLIBOR3M',
+                    start=create_date('3F', 1),
+                    len=Tenor('3M'),
+                   convention=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT360))
+        aae(i.calc_par_rate(cm), .036398560874907913)
 
 class PriceLadderTest(unittest.TestCase):
     def test_price_ladder(self):

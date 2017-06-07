@@ -22,7 +22,15 @@
 
 from yc_convention import *
 import scipy.interpolate
-import pylab, re, collections
+import pylab, re, collections, matplotlib
+
+class PlottingHelper:
+    @staticmethod
+    def set_tenors_on_axis(axis, start_date):
+        tenors = "6M,1Y,2Y,3Y,4Y,5Y,7Y,10Y,15Y,20Y,30Y,40Y,50Y,60Y,70Y".split(",")
+        tenordates = [add_tenor_to_date(int(start_date), Tenor(t)) for t in tenors]
+        axis.xaxis.set_ticks(tenordates)
+        axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, pos: tenors[pos]))
 
 class CurveMap:
     def __init__(self, *arg, **kw):
@@ -57,10 +65,10 @@ class CurveMap:
     def keys(self):
         return self.curves_.keys()
 
-    def plot(self, date_style='ymd', reg=".*"):
+    def plot(self, reg=".*", *arg, **kwargs):
         for name, curve in sorted(self.curves_.items()):
             if re.match(reg, name):
-                curve.plot(date_style=date_style)
+                curve.plot(*arg, **kwargs)
 
 
 class InterpolationMode(enum.Enum):
@@ -169,24 +177,17 @@ class Curve:
     def get_dofs_count(self):
         return len(self.dfs_) - 1
 
-    def plot_df(self, date_style='ymd', samples=1000):
-        X, Y = [], []
-        timesample = linspace(self.times_[0], self.times_[-1], samples)
-        X = timesample
-        assert date_style in ['ymd','excel']
-        if date_style!='excel':
-            X = [fromexceldate(int(x)) for x in X]
-        Y = self.get_df(timesample)
-        pylab.plot(X, Y, label=self.id_)
-
     def plot(self, date_style='ymd', samples=1000):
         X, Y = [], []
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
-        assert date_style in ['ymd', 'excel']
-        if date_style!='excel':
+        assert date_style in ['ymd', 'excel', 'tenor']
+        if date_style=='ymd':
             X = [fromexceldate(int(x)) for x in X]
-        convention = global_conventions[self.id_]
+        elif date_style=='tenor':
+            ax = matplotlib.pyplot.subplot()
+            PlottingHelper.set_tenors_on_axis(ax, self.times_[0])
+        convention = global_conventions.get(self.id_)
         Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, convention.dcc)
         pylab.plot(X, Y, label=self.id_)
 

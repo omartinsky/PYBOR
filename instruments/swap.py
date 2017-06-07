@@ -21,6 +21,8 @@
 
 from instruments.base_instrument import *
 
+# Example: Fixed USD vs. Floating USD.LIBOR.3M
+
 class Swap(Instrument):
     def __init__(self, name, curve_forecast, curve_discount, start, length, convention_fixed, convention_float):
         super().__init__(name)
