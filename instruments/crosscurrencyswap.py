@@ -24,7 +24,7 @@ from instruments.base_instrument import *
 # Example: Fixed GBP vs. Floating USD.LIBOR.3M
 
 class CrossCurrencySwap(Instrument):
-    def __init__(self, name, curve_discount_l, curve_discount_r, curve_forecast_r, start, length,
+    def __init__(self, name, curve_discount_l, curve_discount_r, curve_forecast_r, reference_date, start, length,
                  convention_l, convention_r):
         super().__init__(name)
         assert_type(name, str)
@@ -38,8 +38,8 @@ class CrossCurrencySwap(Instrument):
         self.curve_forecast_r_ = curve_forecast_r
         self.curve_discount_l_ = curve_discount_l
         self.curve_discount_r_ = curve_discount_r
-        self.start_ = start
-        self.end_ = date_step(self.start_, length.n, length.unit)
+        self.start_ = create_date(start, reference_date)
+        self.end_ = date_step(self.start_, length)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)
         self.dcf_l_ = calculate_dcfs(self.accruals_l_, self.convention_l_.dcc)

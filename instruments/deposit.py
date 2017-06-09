@@ -23,14 +23,14 @@ from instruments.base_instrument import *
 
 
 class Deposit(Instrument):
-    def __init__(self, name, curve_forecast, start, len, convention):
+    def __init__(self, name, curve_forecast, reference_date, start, length, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
-        assert_type(start, int)
+        assert_type(reference_date, int)
         self.curve_forecast_ = curve_forecast
-        self.start_ = start
-        self.end_ = date_step(self.start_, len.n, len.unit)
+        self.start_ = create_date(start, reference_date)
+        self.end_ = date_step(self.start_, length)
         self.accruals_ = array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
 

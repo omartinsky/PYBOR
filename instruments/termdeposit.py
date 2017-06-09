@@ -22,18 +22,18 @@
 from instruments.base_instrument import *
 
 class TermDeposit(Instrument):
-    def __init__(self, name, curve_forecast, curve_discount, start, length, convention):
+    def __init__(self, name, curve_forecast, curve_discount, reference_date, start, length, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
         assert_type(curve_discount, str)
         assert_type(convention, Convention)
-        assert_type(start, int)
+        assert_type(reference_date, int)
         self.convention_ = convention
         self.curve_forecast_ = curve_forecast
         self.curve_discount_ = curve_discount
-        self.start_ = start
-        self.end_ = date_step(self.start_, length.n, length.unit)
+        self.start_ = create_date(start, reference_date)
+        self.end_ = date_step(self.start_, length)
         self.accruals_ = generate_schedule(self.start_, self.end_, self.convention_.payment_frequency)
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)
 

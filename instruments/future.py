@@ -21,16 +21,25 @@
 
 from instruments.base_instrument import *
 
+class ConvexityModel:
+    def __init__(self):
+        pass
+    def get_convexity(self, day_count_fraction):
+        assert isinstance(day_count_fraction, float)
+        return day_count_fraction**2 * 0.00002
+
+
 class Future(Instrument):
-    def __init__(self, name, curve_forecast, start, len, convention):
+    def __init__(self, name, curve_forecast, reference_date, start, length, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
         self.curve_forecast = curve_forecast
-        self.start_ = start
-        self.end_ = date_step(self.start_, len.n, len.unit)
+        self.start_ = create_date(start, reference_date)
+        self.end_ = date_step(self.start_, length)
         self.accruals_ = array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
+        self.convexity_ = ConvexityModel().get_convexity(calculate_dcf(reference_date, self.start_, convention.dcc))
 
     def get_start_date(self):
         return self.start_
@@ -41,7 +50,9 @@ class Future(Instrument):
     def calc_par_rate(self, curvemap):
         curve = curvemap[self.curve_forecast]
         df = curve.get_df(self.accruals_)
-        return (df[0] / df[1] - 1) / self.dcf_
+        forward_rate = (df[0] / df[1] - 1) / self.dcf_
+        future_rate = forward_rate + self.convexity_
+        return future_rate
 
     def drdp(self):
         return -100

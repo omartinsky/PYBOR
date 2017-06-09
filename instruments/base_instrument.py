@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 from yc_curve import *
-from yc_dates import *
+from yc_date import *
 
 
 class Instrument:

@@ -28,7 +28,7 @@ class PlottingHelper:
     @staticmethod
     def set_tenors_on_axis(axis, start_date):
         tenors = "6M,1Y,2Y,3Y,4Y,5Y,7Y,10Y,15Y,20Y,30Y,40Y,50Y,60Y,70Y".split(",")
-        tenordates = [add_tenor_to_date(int(start_date), Tenor(t)) for t in tenors]
+        tenordates = [date_step(int(start_date), Tenor(t)) for t in tenors]
         axis.xaxis.set_ticks(tenordates)
         axis.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda x, pos: tenors[pos]))
 
@@ -177,7 +177,7 @@ class Curve:
     def get_dofs_count(self):
         return len(self.dfs_) - 1
 
-    def plot(self, date_style='ymd', samples=1000):
+    def plot(self, date_style='ymd', samples=1000, label=None):
         X, Y = [], []
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
@@ -189,7 +189,7 @@ class Curve:
             PlottingHelper.set_tenors_on_axis(ax, self.times_[0])
         convention = global_conventions.get(self.id_)
         Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, convention.dcc)
-        pylab.plot(X, Y, label=self.id_)
+        pylab.plot(X, Y, label=self.id_ if label is None else label)
 
 class CurveConstructor:
     @staticmethod

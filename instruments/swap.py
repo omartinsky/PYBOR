@@ -24,7 +24,7 @@ from instruments.base_instrument import *
 # Example: Fixed USD vs. Floating USD.LIBOR.3M
 
 class Swap(Instrument):
-    def __init__(self, name, curve_forecast, curve_discount, start, length, convention_fixed, convention_float):
+    def __init__(self, name, curve_forecast, curve_discount, reference_date, start, length, convention_fixed, convention_float):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
@@ -35,8 +35,8 @@ class Swap(Instrument):
         self.convention_float_ = convention_float
         self.curve_forecast_ = curve_forecast
         self.curve_discount_ = curve_discount
-        self.start_ = start
-        self.end_ = date_step(self.start_, length.n, length.unit)
+        self.start_ = create_date(start, reference_date)
+        self.end_ = date_step(self.start_, length)
         self.accruals_fixed_ = generate_schedule(self.start_, self.end_, self.convention_fixed_.payment_frequency)
         self.accruals_float_ = generate_schedule(self.start_, self.end_, self.convention_float_.payment_frequency)
         self.dcf_fixed_ = calculate_dcfs(self.accruals_fixed_, self.convention_fixed_.dcc)

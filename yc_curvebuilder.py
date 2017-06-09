@@ -26,6 +26,7 @@ from instruments.basisswap import *
 from instruments.crosscurrencyswap import *
 from instruments.swap import *
 from instruments.termdeposit import *
+from instruments.mtmcrosscurrencybasisswap import *
 import numpy
 from collections import OrderedDict, defaultdict
 
@@ -153,8 +154,9 @@ class CurveBuilder:
                         assert (fcastR == 'na')
                         inst = Deposit(name,
                                        curve_forecast=fcastL,
-                                       start=create_date(start, eval_date),
-                                       len=Tenor(length),
+                                       reference_date = eval_date,
+                                       start=start,
+                                       length=Tenor(length),
                                        convention=global_conventions.get(convL))
                     elif instrument_type == 'Future':
                         assert (discL == "na")
@@ -163,8 +165,9 @@ class CurveBuilder:
                         assert (fcastR == 'na')
                         inst = Future(name,
                                       curve_forecast=fcastL,
-                                      start=create_date(start, eval_date),
-                                      len=Tenor(length),
+                                      reference_date = eval_date,
+                                      start=start,
+                                      length=Tenor(length),
                                       convention=global_conventions.get(convL))
                     elif instrument_type == 'Swap':
                         assert (discL != "na")
@@ -174,7 +177,8 @@ class CurveBuilder:
                         inst = Swap(name,
                                     curve_forecast=fcastL,
                                     curve_discount=discL,
-                                    start=create_date(start, eval_date),
+                                    reference_date=eval_date,
+                                    start=start,
                                     length=Tenor(length),
                                     convention_fixed=global_conventions.get(convL),
                                     convention_float=global_conventions.get(convR))
@@ -187,7 +191,8 @@ class CurveBuilder:
                                          curve_forecast_l=fcastL,
                                          curve_forecast_r=fcastR,
                                          curve_discount=discL,
-                                         start=create_date(start, eval_date),
+                                         reference_date=eval_date,
+                                         start=start,
                                          length=Tenor(length),
                                          convention_l=global_conventions.get(convL),
                                          convention_r=global_conventions.get(convR))
@@ -200,10 +205,26 @@ class CurveBuilder:
                                                  curve_discount_l=discL,
                                                  curve_discount_r=discR,
                                                  curve_forecast_r=fcastR,
-                                                 start=create_date(start, eval_date),
+                                                 reference_date=eval_date,
+                                                 start=start,
                                                  length=Tenor(length),
                                                  convention_l=global_conventions.get(convL),
                                                  convention_r=global_conventions.get(convR))
+                    elif instrument_type == 'MtmCrossCurrencyBasisSwap':
+                        assert (discL != "na")
+                        assert (discR != "na")
+                        assert (fcastL != 'na')
+                        assert (fcastR != 'na')
+                        inst = MtmCrossCurrencyBasisSwap(name,
+                                                         curve_discount_l=discL,
+                                                         curve_discount_r=discR,
+                                                         curve_forecast_l=fcastL,
+                                                         curve_forecast_r=fcastR,
+                                                         reference_date=eval_date,
+                                                         start=start,
+                                                         length=Tenor(length),
+                                                         convention_l=global_conventions.get(convL),
+                                                         convention_r=global_conventions.get(convR))
                     elif instrument_type == 'TermDeposit':
                         assert (discL != "na")
                         assert (discR == "na")
@@ -212,7 +233,8 @@ class CurveBuilder:
                         inst = TermDeposit(name,
                                            curve_forecast=fcastL,
                                            curve_discount=discL,
-                                           start=create_date(start, eval_date),
+                                           reference_date=eval_date,
+                                           start=start,
                                            length=Tenor(length),
                                            convention=global_conventions.get(convL))
                     else:
@@ -307,7 +329,7 @@ class CurveBuilder:
                 self.progress_monitor.reset()
 
             arguments = (self, curvemap, instrument_prices, curves_for_stage, instruments_for_stage)
-            bounds = (zeros(len(dofs)), ones(len(dofs)))
+            bounds = (zeros(len(dofs)), numpy.inf * ones(len(dofs)))
             solution = scipy.optimize.least_squares(fun=calc_residuals, x0=dofs, args=arguments, bounds=bounds)
 
             assert isinstance(solution, scipy.optimize.OptimizeResult)
