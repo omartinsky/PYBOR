@@ -24,7 +24,22 @@ from instruments.base_instrument import *
 # Example: USD.LIBOR.3M vs. USD.LIBOR.6M + spread
 
 class BasisSwap(Instrument):
-    def __init__(self, name, curve_discount, curve_forecast_l, curve_forecast_r, reference_date, start, length, convention_l, convention_r):
+    @staticmethod
+    def CreateFromDataFrameRow(name, eval_date, row):
+        fcastL, fcastR, discL, discR, convL, convR, start, length = get_dataframe_row_cells(row)
+        assert_is_set([discL, fcastL, fcastR, convL, convR])
+        assert_is_not_set([discR])
+        return BasisSwap(name,
+                         curve_forecast_l=fcastL,
+                         curve_forecast_r=fcastR,
+                         curve_discount=discL,
+                         trade_date=eval_date,
+                         start=start,
+                         length=Tenor(length),
+                         convention_l=global_conventions.get(convL),
+                         convention_r=global_conventions.get(convR))
+
+    def __init__(self, name, curve_discount, curve_forecast_l, curve_forecast_r, trade_date, start, length, convention_l, convention_r):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast_l, str)
@@ -37,15 +52,12 @@ class BasisSwap(Instrument):
         self.curve_forecast_l_ = curve_forecast_l
         self.curve_forecast_r_ = curve_forecast_r
         self.curve_discount_ = curve_discount
-        self.start_ = create_date(start, reference_date)
+        self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)
         self.dcf_l_ = calculate_dcfs(self.accruals_l_, self.convention_l_.dcc)
         self.dcf_r_ = calculate_dcfs(self.accruals_r_, self.convention_r_.dcc)
-
-    def get_start_date(self):
-        return self.start_
 
     def get_pillar_date(self):
         return self.end_
@@ -55,8 +67,8 @@ class BasisSwap(Instrument):
         fcurve_l = curvemap[self.curve_forecast_l_]
         fcurve_r = curvemap[self.curve_forecast_r_]
         dcurve = curvemap[self.curve_discount_]
-        rl = fcurve_l.get_fwd_rate(self.accruals_l_, CouponFreq.ZERO, self.convention_l_.dcc)
-        rr = fcurve_r.get_fwd_rate(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
+        rl = fcurve_l.get_fwd_rate_aligned(self.accruals_l_, CouponFreq.ZERO, self.convention_l_.dcc)
+        rr = fcurve_r.get_fwd_rate_aligned(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
         df_l = dcurve.get_df(self.accruals_l_)
         df_r = dcurve.get_df(self.accruals_r_)
         nominator_l = sum(rl * self.dcf_l_ * df_l[1:])

@@ -22,6 +22,22 @@
 from yc_curve import *
 from yc_date import *
 
+def assert_is_set(variables):
+    return all([var!='null'] for var in variables)
+
+def assert_is_not_set(variables):
+    return all([var=='null'] for var in variables)
+
+def get_dataframe_row_cells(row):
+    fcastL = row['Forecast Curve Left']
+    fcastR = row['Forecast Curve Right']
+    discL = row['Discount Curve Left']
+    discR = row['Discount Curve Right']
+    convL = row['Convention Left']
+    convR = row['Convention Right']
+    start = row['Start']
+    length = row['Length']
+    return fcastL, fcastR, discL, discR, convL, convR, start, length
 
 class Instrument:
     def __init__(self, name):
@@ -29,9 +45,6 @@ class Instrument:
 
     def get_name(self):
         return self.name_
-
-    def get_start_date(self):
-        assert False, 'method must be implemented in child class %s' % type(self)
 
     def get_pillar_date(self):
         assert False, 'method must be implemented in child class %s' % type(self)

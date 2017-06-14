@@ -23,19 +23,28 @@ from instruments.base_instrument import *
 
 
 class Deposit(Instrument):
-    def __init__(self, name, curve_forecast, reference_date, start, length, convention):
+    @staticmethod
+    def CreateFromDataFrameRow(name, eval_date, row):
+        fcastL, fcastR, discL, discR, convL, convR, start, length = get_dataframe_row_cells(row)
+        assert_is_set([fcastL, convL])
+        assert_is_not_set([fcastR, discL, discR, convR])
+        return Deposit(name,
+                       curve_forecast=fcastL,
+                       trade_date=eval_date,
+                       start=start,
+                       length=Tenor(length),
+                       convention=global_conventions.get(convL))
+
+    def __init__(self, name, curve_forecast, trade_date, start, length, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
-        assert_type(reference_date, int)
+        assert_type(trade_date, int)
         self.curve_forecast_ = curve_forecast
-        self.start_ = create_date(start, reference_date)
+        self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_ = array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
-
-    def get_start_date(self):
-        return self.start_
 
     def get_pillar_date(self):
         return self.end_

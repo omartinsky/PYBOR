@@ -24,7 +24,22 @@ from instruments.base_instrument import *
 # Example: Fixed GBP vs. Floating USD.LIBOR.3M
 
 class CrossCurrencySwap(Instrument):
-    def __init__(self, name, curve_discount_l, curve_discount_r, curve_forecast_r, reference_date, start, length,
+    @staticmethod
+    def CreateFromDataFrameRow(name, eval_date, row):
+        fcastL, fcastR, discL, discR, convL, convR, start, length = get_dataframe_row_cells(row)
+        assert_is_set([discL, discR, fcastR, convL, convR])
+        assert_is_not_set([fcastL])
+        return CrossCurrencySwap(name,
+                                 curve_discount_l=discL,
+                                 curve_discount_r=discR,
+                                 curve_forecast_r=fcastR,
+                                 trade_date=eval_date,
+                                 start=start,
+                                 length=Tenor(length),
+                                 convention_l=global_conventions.get(convL),
+                                 convention_r=global_conventions.get(convR))
+
+    def __init__(self, name, curve_discount_l, curve_discount_r, curve_forecast_r, trade_date, start, length,
                  convention_l, convention_r):
         super().__init__(name)
         assert_type(name, str)
@@ -38,15 +53,12 @@ class CrossCurrencySwap(Instrument):
         self.curve_forecast_r_ = curve_forecast_r
         self.curve_discount_l_ = curve_discount_l
         self.curve_discount_r_ = curve_discount_r
-        self.start_ = create_date(start, reference_date)
+        self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)
         self.dcf_l_ = calculate_dcfs(self.accruals_l_, self.convention_l_.dcc)
         self.dcf_r_ = calculate_dcfs(self.accruals_r_, self.convention_r_.dcc)
-
-    def get_start_date(self):
-        return self.start_
 
     def get_pillar_date(self):
         return self.end_
@@ -55,7 +67,7 @@ class CrossCurrencySwap(Instrument):
         fcurve_r = curvemap[self.curve_forecast_r_]
         dcurve_l = curvemap[self.curve_discount_l_]
         dcurve_r = curvemap[self.curve_discount_r_]
-        rr = fcurve_r.get_fwd_rate(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
+        rr = fcurve_r.get_fwd_rate_aligned(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
         df_l = dcurve_l.get_df(self.accruals_l_)
         df_r = dcurve_r.get_df(self.accruals_r_)
         nominator_r = sum(rr * self.dcf_r_ * df_r[1:])

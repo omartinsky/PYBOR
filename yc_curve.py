@@ -65,10 +65,10 @@ class CurveMap:
     def keys(self):
         return self.curves_.keys()
 
-    def plot(self, reg=".*", *arg, **kwargs):
+    def plot_fwd(self, reg=".*", *arg, **kwargs):
         for name, curve in sorted(self.curves_.items()):
             if re.match(reg, name):
-                curve.plot(*arg, **kwargs)
+                curve.plot_fwd(*arg, **kwargs)
 
 
 class InterpolationMode(enum.Enum):
@@ -155,7 +155,17 @@ class Curve:
         if freq == CouponFreq.CONTINUOUS:
             return -log(dfs) / dcf
 
-    def get_fwd_rate(self, t, freq, dcc):
+    def get_fwd_rate(self, t_start, t_end, freq, dcc):
+        dfs_start = self.get_df(t_start)
+        dfs_end = self.get_df(t_end)
+        dcf = calculate_dcf(t_start, t_end, dcc)
+        if freq == CouponFreq.ZERO:
+            return (dfs_start / dfs_end - 1) / dcf
+        if freq == CouponFreq.CONTINUOUS:
+            return log(dfs_start / dfs_end) / dcf
+
+    def get_fwd_rate_aligned(self, t, freq, dcc):
+        # Slightly faster version which relies on the fact that calculation periods are aligned (no overlaps, no gaps)
         dfs = self.get_df(t)
         t1 = t[:-1]
         t2 = t[1:]
@@ -165,7 +175,7 @@ class Curve:
         if freq == CouponFreq.ZERO:
             return (df1 / df2 - 1) / dcf
         if freq == CouponFreq.CONTINUOUS:
-            return -log(df2 / df1) / dcf
+            return log(df1 / df2) / dcf
 
     def set_all_dofs(self, dofs):
         self.dfs_ = append([1], dofs)
@@ -177,18 +187,19 @@ class Curve:
     def get_dofs_count(self):
         return len(self.dfs_) - 1
 
-    def plot(self, date_style='ymd', samples=1000, label=None):
+    def plot_fwd(self, date_style='ymd', samples=1000, label=None, convention=None):
         X, Y = [], []
         timesample = linspace(self.times_[0], self.times_[-1], samples)
         X = timesample[:-1]
         assert date_style in ['ymd', 'excel', 'tenor']
         if date_style=='ymd':
-            X = [fromexceldate(int(x)) for x in X]
+            X = [exceldate_to_pydate(int(x)) for x in X]
         elif date_style=='tenor':
             ax = matplotlib.pyplot.subplot()
             PlottingHelper.set_tenors_on_axis(ax, self.times_[0])
-        convention = global_conventions.get(self.id_)
-        Y = self.get_fwd_rate(timesample, CouponFreq.CONTINUOUS, convention.dcc)
+        if convention is None:
+            convention = global_conventions.get(self.id_)
+        Y = self.get_fwd_rate_aligned(timesample, CouponFreq.ZERO, convention.dcc)
         pylab.plot(X, Y, label=self.id_ if label is None else label)
 
 class CurveConstructor:

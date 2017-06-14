@@ -26,6 +26,8 @@ from teamcity.unittestpy import TeamcityTestRunner
 
 from yc_framework import *
 from yc_convention import *
+from yc_calendar import *
+
 import numpy, random
 
 aae = numpy.testing.assert_almost_equal
@@ -41,20 +43,28 @@ class EnumTests(unittest.TestCase):
 class DateTests(unittest.TestCase):
     def test_tenor(self):
         t = Tenor("3M")
+        t2 = -t
+        t3 = -t2
         self.assertEqual(t.n, 3)
         self.assertEqual(t.unit, 'M')
+        self.assertEqual(t2.n, -3)
+        self.assertEqual(t.unit, 'M')
+        self.assertEqual(t, t3)
 
     def test_date_conversion(self):
+        from datetime import date
         # Do not test dates before 1900/03/01, because excel incorrectly assumes 1900 is a leap year
         p = date(1900, 3, 1)
-        d = toexceldate(p)
+        d = pydate_to_exceldate(p)
         self.assertEqual(d, 61)
-        self.assertEqual(fromexceldate(d), date(1900, 3, 1))
+        self.assertEqual(exceldate_to_pydate(d), date(1900, 3, 1))
 
     def test_date_creation(self):
         self.assertEqual(create_date(43000), 43000)
         self.assertEqual(create_date('E', 43000), 43000)
+        self.assertEqual(create_date('E', create_date('20170922')), 43000)
         self.assertEqual(create_date('1M', 43000), 43030)
+        self.assertEqual(create_date(Tenor('1M'), 43000), 43030)
         self.assertEqual(create_date('E+1M', 43000), 43030)
         self.assertEqual(create_date('E+E+1Y+1M', 43000), 43395)
         self.assertEqual(create_date('1970-01-03'), 25571)
@@ -68,6 +78,38 @@ class DateTests(unittest.TestCase):
         self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT365), 366/365)
         self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT360), 366/360)
 
+    def test_generate_schedule(self):
+        exceptionLambda = lambda : generate_schedule(create_date('1996-01-01'), create_date('1997-01-03'), Tenor("3M"), StubType.NOT_ALLOWED)
+        self.assertRaises(BaseException, exceptionLambda)
+
+        schedule0 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"), StubType.NOT_ALLOWED)
+        schedule1 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"), StubType.BACK_STUB_SHORT)
+        schedule2 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"), StubType.BACK_STUB_LONG)
+        schedule3 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"), StubType.FRONT_STUB_SHORT)
+        schedule4 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"), StubType.FRONT_STUB_LONG)
+        self.assertListEqual(list(schedule0), [35065, 35156, 35247, 35339, 35431])
+        self.assertListEqual(list(schedule1), [35065, 35156, 35247, 35339, 35431])
+        self.assertListEqual(list(schedule2), [35065, 35156, 35247, 35339, 35431])
+        self.assertListEqual(list(schedule3), [35065, 35156, 35247, 35339, 35431])
+        self.assertListEqual(list(schedule4), [35065, 35156, 35247, 35339, 35431])
+
+        stub_type = StubType.BACK_STUB_SHORT
+        schedule = generate_schedule(create_date('1996-01-01'), create_date('1996-12-20'), Tenor("3M"), stub_type)
+        self.assertEqual(type(schedule), numpy.ndarray)
+        self.assertListEqual(list(schedule), [35065, 35156, 35247, 35339, 35419])
+
+        stub_type = StubType.BACK_STUB_LONG
+        schedule = generate_schedule(create_date('1996-01-01'), create_date('1996-12-20'), Tenor("3M"), stub_type)
+        self.assertListEqual(list(schedule), [35065, 35156, 35247, 35419])
+
+        stub_type = StubType.FRONT_STUB_SHORT
+        schedule = generate_schedule(create_date('1996-01-20'), create_date('1997-01-01'), Tenor("3M"), stub_type)
+        self.assertListEqual(list(schedule), [35084, 35156, 35247, 35339, 35431])
+
+        stub_type = StubType.FRONT_STUB_LONG
+        schedule = generate_schedule(create_date('1996-01-20'), create_date('1997-01-01'), Tenor("3M"), stub_type)
+        self.assertListEqual(list(schedule), [35084, 35247, 35339, 35431])
+
     def test_tenor(self):
         t = Tenor("-3M")
         self.assertEqual(t.unit, 'M')
@@ -76,33 +118,63 @@ class DateTests(unittest.TestCase):
         self.assertNotEqual(Tenor('12M'), Tenor('1Y'))
 
     def test_date_step(self):
-        self.assertEqual(date_step(toexceldate(date(2017, 2, 10)), Tenor('3M')), toexceldate(date(2017, 2 + 3, 10)))
-        self.assertEqual(date_step(toexceldate(date(2017, 2, 10)), Tenor('1Y')), toexceldate(date(2017 + 1, 2, 10)))
-        self.assertEqual(date_step(toexceldate(date(2017, 2, 10)), Tenor('-1Y')), toexceldate(date(2017 - 1, 2, 10)))
+        from datetime import date
+        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('3M')), create_date(date(2017, 5, 10)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('1Y')), create_date(date(2018, 2, 10)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('-1Y')), create_date(date(2016, 2, 10)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 31)), Tenor('1M')), create_date(date(2017, 4, 30)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('-1Y'), preserve_eom=True), create_date(date(2016, 2, 10)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('-1Y'), preserve_eom=True), create_date(date(2016, 2, 29)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1M'), preserve_eom=True), create_date(date(2017, 3, 31)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 31)), Tenor('1M'), preserve_eom=True), create_date(date(2017, 4, 30)))
+        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1D'), preserve_eom=True), create_date(date(2017, 3, 31)))
 
     def test_date_roll(self):
+        from datetime import date
+
         F = RollType.FOLLOWING
         P = RollType.PRECEDING
         wc = WeekendCalendar()
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 17)), F, wc), toexceldate(date(2017, 2, 17)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 18)), F, wc), toexceldate(date(2017, 2, 20)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 19)), F, wc), toexceldate(date(2017, 2, 20)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 20)), F, wc), toexceldate(date(2017, 2, 20)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 17)), F, wc), create_date(date(2017, 2, 17)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 18)), F, wc), create_date(date(2017, 2, 20)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 19)), F, wc), create_date(date(2017, 2, 20)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 20)), F, wc), create_date(date(2017, 2, 20)))
 
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 17)), P, wc), toexceldate(date(2017, 2, 17)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 18)), P, wc), toexceldate(date(2017, 2, 17)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 19)), P, wc), toexceldate(date(2017, 2, 17)))
-        self.assertEqual(date_roll(toexceldate(date(2017, 2, 20)), P, wc), toexceldate(date(2017, 2, 20)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 17)), P, wc), create_date(date(2017, 2, 17)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 18)), P, wc), create_date(date(2017, 2, 17)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 19)), P, wc), create_date(date(2017, 2, 17)))
+        self.assertEqual(date_roll(create_date(date(2017, 2, 20)), P, wc), create_date(date(2017, 2, 20)))
+
+    def test_create_spot_date(self):
+        from datetime import date
+        d = create_date(date(2017, 1, 12)) # Thursday
+        d2 = calculate_spot_date(d, 3, WeekendCalendar())
+        self.assertEqual(exceldate_to_pydate(d2), date(2017, 1, 17))
+
 
     def test_calendar(self):
+        from datetime import date
         cal = WeekendCalendar()
-        self.assertFalse(cal.is_holiday(toexceldate(date(2017, 2, 13))))
-        self.assertFalse(cal.is_holiday(toexceldate(date(2017, 2, 14))))
-        self.assertFalse(cal.is_holiday(toexceldate(date(2017, 2, 15))))
-        self.assertFalse(cal.is_holiday(toexceldate(date(2017, 2, 16))))
-        self.assertFalse(cal.is_holiday(toexceldate(date(2017, 2, 17))))
-        self.assertTrue(cal.is_holiday(toexceldate(date(2017, 2, 18))))
-        self.assertTrue(cal.is_holiday(toexceldate(date(2017, 2, 19))))
+        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 13))))
+        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 14))))
+        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 15))))
+        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 16))))
+        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 17))))
+        self.assertTrue(cal.is_holiday(create_date(date(2017, 2, 18))))
+        self.assertTrue(cal.is_holiday(create_date(date(2017, 2, 19))))
+
+        cal1 = EnumeratedCalendar({create_date(date(2017, 2, 16))})
+        self.assertTrue(cal1.is_holiday(create_date(date(2017, 2, 16))))
+
+        cal2 = EnumeratedCalendar({create_date(date(2017, 2, 17))})
+        self.assertTrue(cal2.is_holiday(create_date(date(2017, 2, 17))))
+
+        cal12 = union_calendars([cal1,cal2])
+        self.assertTrue(cal12.is_holiday(create_date(date(2017, 2, 16))))
+        self.assertTrue(cal12.is_holiday(create_date(date(2017, 2, 17))))
+
+        lon_nyk = global_calendars.get("London+NewYork")
+        assert isinstance(lon_nyk, EnumeratedCalendar)
 
 class ConventionsTest(unittest.TestCase):
     def convention_test(self):
@@ -111,47 +183,50 @@ class ConventionsTest(unittest.TestCase):
 class InstrumentTests(unittest.TestCase):
     def test_deposit(self):
         cm = {
-            'USDLIBOR3M' : Curve('USDLIBOR3M', 0, array([0.001, 1, 2, 200]), array([.99, .98, .975, .95]), InterpolationMode.LINEAR_LOGDF),
+            'USDLIBOR3M' : Curve('USDLIBOR3M', 42000+0, 42000+array([0.001, 1, 2, 200]), array([.99, .98, .975, .95]), InterpolationMode.LINEAR_LOGDF),
         }
         i = Deposit(name='USDLIBOR3M/Deposit/3M',
                     curve_forecast='USDLIBOR3M',
-                    reference_date=1,
+                    trade_date=42000 + 1,
                     start='E',
                     length=Tenor('6M'),
+					#TODO use real conventions
                     convention=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT365))
-        aae(i.calc_par_rate(cm), .058774765557153198)
+        aae(i.calc_par_rate(cm), 0.058722612773343938)
 
     def test_future(self):
         cm = {
-            'USDLIBOR3M' : Curve('USDLIBOR3M', 0, array([250, 500,750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
+            'USDLIBOR3M' : Curve('USDLIBOR3M', 42000+0, 42000+array([250, 500,750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
         }
         i = Future(name="Future",
                    curve_forecast='USDLIBOR3M',
-                   reference_date=1,
+                   trade_date=42000 + 1,
                    start='3F',
                    length=Tenor('3M'),
+					#TODO use real conventions
                    convention=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT360))
-        aae(i.calc_par_rate(cm), .036410062263796804)
+        aae(i.calc_par_rate(cm), 0.03642284879406299)
 
 
     def test_mtm_swap(self):
         cm = {
-            'GBPLIBOR3M': Curve('GBPLIBOR3M', 0, array([250, 500, 1750]), array([.945, .94, .93]), InterpolationMode.CUBIC_LOGDF),
-            'USDLIBOR3M': Curve('USDLIBOR3M', 0, array([250, 500, 1750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
-            'GBP-USDOIS': Curve('GBP-USDOIS', 0, array([250, 500, 1750]), array([.965, .96, .94]), InterpolationMode.CUBIC_LOGDF),
-            'USD-USDOIS': Curve('USD-USDOIS', 0, array([250, 500, 1750]), array([.974, .92, .91]), InterpolationMode.CUBIC_LOGDF),
+            'GBPLIBOR3M': Curve('GBPLIBOR3M', 42000+0, 42000+array([250, 500, 1750]), array([.945, .94, .93]), InterpolationMode.CUBIC_LOGDF),
+            'USDLIBOR3M': Curve('USDLIBOR3M', 42000+0, 42000+array([250, 500, 1750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
+            'GBP-USDOIS': Curve('GBP-USDOIS', 42000+0, 42000+array([250, 500, 1750]), array([.965, .96, .94]), InterpolationMode.CUBIC_LOGDF),
+            'USD-USDOIS': Curve('USD-USDOIS', 42000+0, 42000+array([250, 500, 1750]), array([.974, .92, .91]), InterpolationMode.CUBIC_LOGDF),
         }
         i = MtmCrossCurrencyBasisSwap(name="MtmCrossCurrencyBasisSwap",
-                   curve_discount_l = 'GBP-USDOIS',
-                   curve_discount_r = 'USD-USDOIS',
-                   curve_forecast_l='GBPLIBOR3M',
-                   curve_forecast_r='USDLIBOR3M',
-                   reference_date=1,
-                   start='E',
-                   length=Tenor('3Y'),
-                   convention_l=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT365),
-                   convention_r=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT360))
-        aae(i.calc_par_rate(cm), -0.036326331132641367)
+                                      curve_discount_l = 'GBP-USDOIS',
+                                      curve_discount_r = 'USD-USDOIS',
+                                      curve_forecast_l='GBPLIBOR3M',
+                                      curve_forecast_r='USDLIBOR3M',
+                                      trade_date=42000 + 1,
+                                      start='E',
+                                      length=Tenor('3Y'),
+					  				  #TODO use real conventions
+                                      convention_l=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT365),
+                                      convention_r=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT360))
+        aae(i.calc_par_rate(cm), -0.036300637792516029)
 
 
 class PriceLadderTest(unittest.TestCase):
@@ -175,8 +250,9 @@ class CurveInterpolationTest(unittest.TestCase):
         self.assertEqual(c.get_id(), 'libor')
         aae(c.get_df([0, 1, 2]), [1, .98, .975])
         aae(c.get_df([1.3, 1.9]), [0.9784973, 0.9754988])
-        aae(c.get_fwd_rate(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365), [1.868445, 1.8698797])
-        aae(c.get_fwd_rate(array([1, 1.3, 1.9]), CouponFreq.CONTINUOUS, DCC.ACT365), [1.8670117, 1.8670117])
+        aae(c.get_fwd_rate_aligned(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365), [1.868445, 1.8698797])
+        aae(c.get_fwd_rate_aligned(array([1, 1.3, 1.9]), CouponFreq.ZERO, DCC.ACT365), [1.868445, 1.8698797])
+        aae(c.get_fwd_rate(array([1, 1.3]), array([1.3, 1.9]), CouponFreq.CONTINUOUS, DCC.ACT365), [1.8670117, 1.8670117])
         aae(c.get_zero_rate(array([1]), CouponFreq.ZERO, DCC.ACT365), [(1/.98 - 1.) * 365.])
         aae(c.get_zero_rate(array([1]), CouponFreq.CONTINUOUS, DCC.ACT365), [-log(.98) * 365.])
 
@@ -198,14 +274,14 @@ class CurveInterpolationTest(unittest.TestCase):
 
 class CurveMapTests(unittest.TestCase):
     def test_plot(self):
-        c1 = Curve('USDLIBOR3M', 0, array([0.001, 1, 2]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
-        c2 = Curve('USDLIBOR6M', 0, array([0.002, 3, 4]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        c1 = Curve('USDLIBOR3M', 42000+0, 42000+array([0.001, 1, 2]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        c2 = Curve('USDLIBOR6M', 42000+0, 42000+array([0.002, 3, 4]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
         cm = CurveMap()
         cm.add_curve(c1)
         cm.add_curve(c2)
         self.assertEqual(len(cm), 2)
         self.assertEqual(sorted(cm.keys()), ['USDLIBOR3M','USDLIBOR6M'])
-        cm.plot()
+        #cm.plot()
 
 
 class CurveConstructorTests(unittest.TestCase):
@@ -244,7 +320,6 @@ class BuilderCompositeTests(unittest.TestCase):
         curve_builder = CurveBuilder('engine_test.xlsx', eval_date)
         self.assertEqual(curve_builder.get_curve_names(), ['USDLIBOR3M', 'USDLIBOR6M', 'USD-USDOIS'])
         self.assertEqual(len(list(curve_builder.curve_templates)), 3)
-        self.assertIsNotNone(curve_builder.getframe())
 
         pricing_curvemap = CurveMap()
         s_libor3 = 'USDLIBOR3M'

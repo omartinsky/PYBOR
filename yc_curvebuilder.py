@@ -21,6 +21,7 @@
 
 
 from instruments.deposit import *
+from instruments.zerorate import *
 from instruments.future import *
 from instruments.basisswap import *
 from instruments.crosscurrencyswap import *
@@ -134,6 +135,7 @@ class CurveBuilder:
             for name, row in curve_df.iterrows():
                 try:
                     instrument_type = row['Type']
+                    assert isinstance(row, pandas.core.series.Series)
                     fcastL = row['Forecast Curve Left']
                     fcastR = row['Forecast Curve Right']
                     discL = row['Discount Curve Left']
@@ -148,95 +150,21 @@ class CurveBuilder:
                         continue
 
                     if instrument_type == 'Deposit':
-                        assert (discL == "na")
-                        assert (discR == "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR == 'na')
-                        inst = Deposit(name,
-                                       curve_forecast=fcastL,
-                                       reference_date = eval_date,
-                                       start=start,
-                                       length=Tenor(length),
-                                       convention=global_conventions.get(convL))
+                        inst = Deposit.CreateFromDataFrameRow(name, eval_date, row)
+                    elif instrument_type == 'ZeroRate':
+                        inst = ZeroRate.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'Future':
-                        assert (discL == "na")
-                        assert (discR == "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR == 'na')
-                        inst = Future(name,
-                                      curve_forecast=fcastL,
-                                      reference_date = eval_date,
-                                      start=start,
-                                      length=Tenor(length),
-                                      convention=global_conventions.get(convL))
+                        inst = Future.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'Swap':
-                        assert (discL != "na")
-                        assert (discR == "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR == 'na')
-                        inst = Swap(name,
-                                    curve_forecast=fcastL,
-                                    curve_discount=discL,
-                                    reference_date=eval_date,
-                                    start=start,
-                                    length=Tenor(length),
-                                    convention_fixed=global_conventions.get(convL),
-                                    convention_float=global_conventions.get(convR))
+                        inst = Swap.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'BasisSwap':
-                        assert (discL != "na")
-                        assert (discR == "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR != 'na')
-                        inst = BasisSwap(name,
-                                         curve_forecast_l=fcastL,
-                                         curve_forecast_r=fcastR,
-                                         curve_discount=discL,
-                                         reference_date=eval_date,
-                                         start=start,
-                                         length=Tenor(length),
-                                         convention_l=global_conventions.get(convL),
-                                         convention_r=global_conventions.get(convR))
+                        inst = BasisSwap.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'CrossCurrencySwap':
-                        assert (discL != "na")
-                        assert (discR != "na")
-                        assert (fcastL == 'na')
-                        assert (fcastR != 'na')
-                        inst = CrossCurrencySwap(name,
-                                                 curve_discount_l=discL,
-                                                 curve_discount_r=discR,
-                                                 curve_forecast_r=fcastR,
-                                                 reference_date=eval_date,
-                                                 start=start,
-                                                 length=Tenor(length),
-                                                 convention_l=global_conventions.get(convL),
-                                                 convention_r=global_conventions.get(convR))
+                        inst = CrossCurrencySwap.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'MtmCrossCurrencyBasisSwap':
-                        assert (discL != "na")
-                        assert (discR != "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR != 'na')
-                        inst = MtmCrossCurrencyBasisSwap(name,
-                                                         curve_discount_l=discL,
-                                                         curve_discount_r=discR,
-                                                         curve_forecast_l=fcastL,
-                                                         curve_forecast_r=fcastR,
-                                                         reference_date=eval_date,
-                                                         start=start,
-                                                         length=Tenor(length),
-                                                         convention_l=global_conventions.get(convL),
-                                                         convention_r=global_conventions.get(convR))
+                        inst = MtmCrossCurrencyBasisSwap.CreateFromDataFrameRow(name, eval_date, row)
                     elif instrument_type == 'TermDeposit':
-                        assert (discL != "na")
-                        assert (discR == "na")
-                        assert (fcastL != 'na')
-                        assert (fcastR == 'na')
-                        inst = TermDeposit(name,
-                                           curve_forecast=fcastL,
-                                           curve_discount=discL,
-                                           reference_date=eval_date,
-                                           start=start,
-                                           length=Tenor(length),
-                                           convention=global_conventions.get(convL))
+                        inst = TermDeposit.CreateFromDataFrameRow(name, eval_date, row)
                     else:
                         raise BaseException("Unknown instrument type %s" % instrument_type)
                 except BaseException as ex:
@@ -257,7 +185,8 @@ class CurveBuilder:
         for row in self.df_curves.iterrows():
             curve, stage = row[0], row[1]['Solve Stage']
             map[stage].add(curve)
-        return [map[i] for i in list(map)]
+        stages = [map[i] for i in list(sorted(map))]
+        return stages
 
     def get_curve_names(self):
         return [t.curve_name for t in self.curve_templates]
@@ -274,8 +203,11 @@ class CurveBuilder:
         out = OrderedDict()
         for curve_template in self.curve_templates:
             for instrument in curve_template.instruments:
-                rate = instrument.calc_par_rate(curvemap)
-                out[instrument.name_] = instrument.price_from_par_rate(rate)
+                if (curvemap):
+                    rate = instrument.calc_par_rate(curvemap)
+                    out[instrument.name_] = instrument.price_from_par_rate(rate)
+                else: # If curvemap is not provided, generated price ladder will contain zeros.
+                    out[instrument.name_] = 0.0
         return PriceLadder(out)
 
     def get_instrument_rates(self, price_ladder):
@@ -362,13 +294,3 @@ class CurveBuilder:
         pos = self.instrument_positions[name]
         return self.all_instruments[pos]
 
-    def getframe(self):
-        cp = copy.deepcopy(self.df_instruments)
-        cp['start2'] = None
-        cp['end2'] = None
-
-        for inst in self.all_instruments:
-            assert isinstance(inst, Instrument)
-            cp['start2'][inst.name_] = inst.get_start_date()
-            cp['end2'][inst.name_] = inst.get_pillar_date()
-        return cp

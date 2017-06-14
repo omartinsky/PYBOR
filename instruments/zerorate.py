@@ -21,47 +21,36 @@
 
 from instruments.base_instrument import *
 
-class TermDeposit(Instrument):
+
+class ZeroRate(Instrument):
     @staticmethod
     def CreateFromDataFrameRow(name, eval_date, row):
         fcastL, fcastR, discL, discR, convL, convR, start, length = get_dataframe_row_cells(row)
         assert_is_set([discL, fcastL, convL])
         assert_is_not_set([discR, fcastR, convR])
-        return TermDeposit(name,
-                           curve_forecast=fcastL,
-                           curve_discount=discL,
-                           trade_date=eval_date,
-                           start=start,
-                           length=Tenor(length),
-                           convention=global_conventions.get(convL))
+        return ZeroRate(name,
+                        curve_forecast=fcastL,
+                        curve_discount=discL,
+                        trade_date=eval_date,
+                        start=start,
+                        length=Tenor(length),
+                        convention=global_conventions.get(convL))
 
-    def __init__(self, name, curve_forecast, curve_discount, trade_date, start, length, convention):
+    def __init__(self, name, curve_forecast, trade_date, start, length, convention):
         super().__init__(name)
         assert_type(name, str)
         assert_type(curve_forecast, str)
-        assert_type(curve_discount, str)
-        assert_type(convention, Convention)
         assert_type(trade_date, int)
-        self.convention_ = convention
         self.curve_forecast_ = curve_forecast
-        self.curve_discount_ = curve_discount
         self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
-        self.accruals_ = generate_schedule(self.start_, self.end_, self.convention_.payment_frequency)
-        self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)
+        self.accruals_ = array([self.start_, self.end_])
+        self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
 
     def get_pillar_date(self):
         return self.end_
 
     def calc_par_rate(self, curvemap):
-        fcurve = curvemap[self.curve_forecast_]
-        dcurve = curvemap[self.curve_discount_]
-        r = fcurve.get_fwd_rate_aligned(self.accruals_, CouponFreq.ZERO, self.convention_.dcc)
-        df = dcurve.get_df(self.accruals_)
-        nominator = sum(r * self.dcf_ * df[1:])
-        denumerator = sum(self.dcf_ * df[1:])
-        df_s = df[0]
-        df_e = df[-1]
-        price = (df_s - df_e - nominator) / denumerator
-        return price
-
+        curve = curvemap[self.curve_forecast_]
+        df = curve.get_df(self.accruals_)
+        return log(df[0] / df[1]) / self.dcf_
