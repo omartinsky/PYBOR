@@ -20,6 +20,14 @@
 # SOFTWARE.
 
 
+def assertRaisesMessage(exception_class, lambda_function, message_substring):
+    try:
+        lambda_function()
+    except exception_class as ex:
+        msg = ex.args[0]
+        if message_substring not in msg:
+            raise BaseException("Unexpected exception string '%s'" % msg)
+
 def assert_type(obj, expected_type, allowNone=False):
     assert (allowNone and obj is None) or isinstance(obj, expected_type), "Unexpected type %s" % str(type(obj))
 

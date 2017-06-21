@@ -65,16 +65,26 @@ class CurveMap:
     def keys(self):
         return self.curves_.keys()
 
-    def plot_fwd(self, reg=".*", *arg, **kwargs):
+    def plot(self, reg=".*", *arg, **kwargs):
         for name, curve in sorted(self.curves_.items()):
             if re.match(reg, name):
-                curve.plot_fwd(*arg, **kwargs)
+                curve.plot(*arg, **kwargs)
 
 
 class InterpolationMode(enum.Enum):
     LINEAR_LOGDF = 0
     LINEAR_CCZR = 1
     CUBIC_LOGDF = 2
+
+class PlotMode(enum.Enum):
+    DF = 0
+    ZR = 1
+    FWD = 2
+
+class PlotDate(enum.Enum):
+    YMD = 0
+    EXCEL = 1
+    TENOR = 2
 
 class ExponentialInterpolator:
     def __init__(self, interp):
@@ -95,7 +105,7 @@ class Curve:
             times, dfs = array(times), array(dfs)
             assert_type(interpolation_mode, InterpolationMode)
             assert len(times) > 0, "Vector of times is empty"
-            assert times[0] != eval, "DF at eval date cannot be provided externally. It is assumed to be 1.0 always"
+            assert times[0] != eval_date, "DF at eval date cannot be provided externally. It is assumed to be 1.0 always."
             self.id_ = curve_id
             self.times_ = append(eval_date, times)
             self.dfs_ = append([1.], dfs)
@@ -187,20 +197,32 @@ class Curve:
     def get_dofs_count(self):
         return len(self.dfs_) - 1
 
-    def plot_fwd(self, date_style='ymd', samples=1000, label=None, convention=None):
-        X, Y = [], []
+    def plot(self, date_style=PlotDate.YMD, mode=PlotMode.FWD, samples=1000, label=None, convention=None):
         timesample = linspace(self.times_[0], self.times_[-1], samples)
-        X = timesample[:-1]
-        assert date_style in ['ymd', 'excel', 'tenor']
-        if date_style=='ymd':
+        X = timesample
+        if date_style==PlotDate.YMD:
             X = [exceldate_to_pydate(int(x)) for x in X]
-        elif date_style=='tenor':
+        elif date_style==PlotDate.TENOR:
             ax = matplotlib.pyplot.subplot()
             PlottingHelper.set_tenors_on_axis(ax, self.times_[0])
-        if convention is None:
-            convention = global_conventions.get(self.id_)
-        Y = self.get_fwd_rate_aligned(timesample, CouponFreq.ZERO, convention.dcc)
-        pylab.plot(X, Y, label=self.id_ if label is None else label)
+        elif date_style==PlotDate.EXCEL:
+            pass
+        else:
+            raise BaseException("Unknown PlottingDateStyle")
+        ###
+        if mode==PlotMode.FWD:
+            convention = global_conventions.get(self.id_) if convention is None else convention
+            Y = self.get_fwd_rate_aligned(timesample, CouponFreq.ZERO, convention.dcc)
+            pylab.plot(X[:-1], Y, label=self.id_ if label is None else label)
+        elif mode==PlotMode.ZR:
+            convention = global_conventions.get(self.id_) if convention is None else convention
+            Y = self.get_zero_rate(timesample[1:], CouponFreq.ZERO, convention.dcc)
+            pylab.plot(X[:-1], Y, label=self.id_ if label is None else label)
+        elif mode==PlotMode.DF:
+            Y = self.get_df(timesample)
+            pylab.plot(X, Y, label=self.id_ if label is None else label)
+        else:
+            raise BaseException("Unknown PlottingMode")
 
 class CurveConstructor:
     @staticmethod

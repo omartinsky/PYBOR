@@ -117,6 +117,19 @@ class DateTests(unittest.TestCase):
         self.assertEqual(Tenor('3M'), Tenor('3M'))
         self.assertNotEqual(Tenor('12M'), Tenor('1Y'))
 
+    def test_imm_date(self):
+        from datetime import date
+        assert next_imm_date(date(2017, 1, 1)) == date(2017, 3, 15)
+        assert next_imm_date(date(2017, 3, 1)) == date(2017, 3, 15)
+        assert next_imm_date(date(2017, 3, 14)) == date(2017, 3, 15)
+        assert next_imm_date(date(2017, 3, 15)) == date(2017, 6, 21)
+        assert next_imm_date(date(2017, 6, 20)) == date(2017, 6, 21)
+        assert next_imm_date(date(2017, 6, 21)) == date(2017, 9, 20)
+        assert next_imm_date(date(2017, 6, 22)) == date(2017, 9, 20)
+        assert next_imm_date(date(2017, 9, 19)) == date(2017, 9, 20)
+        assert next_imm_date(date(2017, 9, 20)) == date(2017, 12, 20)
+        assert next_imm_date(date(2017, 12, 20)) == date(2018, 3, 21)
+
     def test_date_step(self):
         from datetime import date
         self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('3M')), create_date(date(2017, 5, 10)))
@@ -128,6 +141,10 @@ class DateTests(unittest.TestCase):
         self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1M'), preserve_eom=True), create_date(date(2017, 3, 31)))
         self.assertEqual(date_step(create_date(date(2017, 3, 31)), Tenor('1M'), preserve_eom=True), create_date(date(2017, 4, 30)))
         self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1D'), preserve_eom=True), create_date(date(2017, 3, 31)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 14)), Tenor('1F')), create_date(date(2017, 3, 15)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 14)), Tenor('2F')), create_date(date(2017, 6, 21)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 15)), Tenor('1F')), create_date(date(2017, 6, 21)))
+        self.assertEqual(date_step(create_date(date(2017, 3, 15)), Tenor('2F')), create_date(date(2017, 9, 20)))
 
     def test_date_roll(self):
         from datetime import date
@@ -205,7 +222,7 @@ class InstrumentTests(unittest.TestCase):
                    length=Tenor('3M'),
 					#TODO use real conventions
                    convention=Convention(Tenor("3M"), Tenor("3M"), Tenor("3M"), DCC.ACT360))
-        aae(i.calc_par_rate(cm), 0.03642284879406299)
+        aae(i.calc_par_rate(cm), 0.036277804826229887)
 
 
     def test_mtm_swap(self):
@@ -281,10 +298,16 @@ class CurveMapTests(unittest.TestCase):
         cm.add_curve(c2)
         self.assertEqual(len(cm), 2)
         self.assertEqual(sorted(cm.keys()), ['USDLIBOR3M','USDLIBOR6M'])
-        #cm.plot()
-
+        #cm.plot(".*", mode=PlottingMode.DISC_FACTOR)
+        #cm.plot(".*", mode=PlottingMode.ZERO_RATE)
+        #cm.plot(".*", mode=PlottingMode.FWD_RATE)
 
 class CurveConstructorTests(unittest.TestCase):
+    def test_curve_construction(self):
+        t = array([42738, 47604, 52471, 57538, 62204, 67071, 71939])
+        df = array([1., 0.76592834, 0.5292694, 0.36397074, 0.24525508, 0.15913423, 0.10440653])
+        self.assertRaises(BaseException, lambda: Curve('USDLIBOR3M', 42738, t, df, InterpolationMode.LINEAR_LOGDF))
+
     def test_short_rate_model(self):
         random.seed(1)
         times = [i for i in range(2, 2+80*365+1, 10)]
@@ -346,12 +369,12 @@ class BuilderCompositeTests(unittest.TestCase):
         test_pillars = linspace(eval_date+0, eval_date+50*365, 15)
         actual_libor3_df = build_output.output_curvemap[s_libor3].get_df(test_pillars)
         actual_sonia_df = build_output.output_curvemap[s_ois].get_df(test_pillars)
-        expected_libor3_df = array([ 1.       ,  0.9241786,  0.8519254,  0.7797185,  0.7137857,
-                                     0.6571811,  0.6068583,  0.5604794,  0.5197033,  0.4817573,
-                                     0.4462414,  0.4123832,  0.3801059,  0.3496478,  0.3209614])
-        expected_sonia_df = array([ 1.       ,  0.9356299,  0.874368 ,  0.817277 ,  0.765599 ,
-                                    0.7161831,  0.6701864,  0.6274217,  0.587079 ,  0.5493289,
-                                    0.5138211,  0.4798852,  0.4483419,  0.4194498,  0.393207 ])
+        expected_libor3_df = array([ 1.       ,  0.9241852,  0.8519249,  0.779718 ,  0.7137853,
+                                    0.6571807,  0.606858 ,  0.5604791,  0.5197029,  0.481757 ,
+                                    0.4462411,  0.4123829,  0.3801056,  0.3496476,  0.3209611])
+        expected_sonia_df = array([ 1.       ,  0.9356349,  0.8743677,  0.8172767,  0.7655987,
+                                    0.7161828,  0.6701861,  0.6274215,  0.5870788,  0.5493287,
+                                    0.5138209,  0.479885 ,  0.4483417,  0.4194496,  0.3932068 ])
 
         self.maxDiff = None
         aae(actual_libor3_df, expected_libor3_df)

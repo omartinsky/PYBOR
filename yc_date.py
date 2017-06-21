@@ -74,13 +74,45 @@ def exceldate_to_pydate(d):
     assert d >= 61, "Do not allow dates below 1 March 1900, Excel incorrectly assumes 1900 is a leap year"
     return excelBaseDate + relativedelta(days=d)
 
+def create_relativedelta(n, unit):
+    if unit == 'M':
+        return relativedelta(months=n)
+    elif unit == 'D':
+        return relativedelta(days=n)
+    elif unit == 'Y':
+        return relativedelta(years=n)
+    elif unit == 'Q':
+        return relativedelta(months=3 * n)
+    else:
+        raise BaseException("Unknown unit %s" % unit)
+
+def next_imm_date(d):
+    assert isinstance(d, datetime.date)
+    def third_wednesday(d):
+        d = d.replace(day=1)
+        x0 = d.weekday() - 2 # How many days since last wednesday
+        x1 = 7-x0 # how many days till next (1st wednesday)
+        return (d + relativedelta(days=x1 + 14 if x0 >= 1 else x1 + 7)).day
+    if d.month in [3,6,9,12]:
+        wed = third_wednesday(d)
+        return next_imm_date(d + relativedelta(months=1)) if wed <= d.day else d.replace(day=wed)
+    else:
+        d = d.replace(day=1).replace(month=int((d.month-1) / 3+1)*3)
+        return d.replace(day=third_wednesday(d))
+
 def date_step(date, tenor, preserve_eom=False):
     assert isinstance(date, int)
     assert isinstance(tenor, Tenor)
     assert tenor.unit != 'E'
     pydate = exceldate_to_pydate(date)
-    pydate2 = pydate + create_relativedelta(tenor.n, tenor.unit)
+    if tenor.unit == 'F':
+        pydate2 = pydate
+        for i in range(tenor.n):
+            pydate2 = next_imm_date(pydate2)
+    else:
+        pydate2 = pydate + create_relativedelta(tenor.n, tenor.unit)
     if preserve_eom:
+        assert tenor.unit not in ['F']
         lastDay = calendar.monthrange(pydate.year, pydate.month)[1]
         if pydate.day == lastDay:
             d2 = calendar.monthrange(pydate2.year, pydate2.month)[1]
@@ -110,7 +142,13 @@ def calculate_spot_date(trade_date, spot_offset, calendar):
     assert not calendar.is_holiday(spot_date)
     return spot_date
 
-def create_date(arg, reference_date=None): # Creates excel date
+def create_date(arg, reference_date=None): # TODO remove this and use create_excel_date instead
+    return create_excel_date(arg, reference_date)
+
+def create_py_date(arg, reference_date=None):
+    return exceldate_to_pydate(create_excel_date(arg, reference_date))
+
+def create_excel_date(arg, reference_date=None): # Creates excel date
     if isinstance(arg, int):
         return arg
     elif isinstance(arg, datetime.date):
@@ -141,20 +179,6 @@ def calculate_dcf(date0, date1, dcc):
     numerator = date1 - date0
     return numerator / dcc.get_denominator()
 
-
-def create_relativedelta(n, unit):
-    if unit == 'M':
-        return relativedelta(months=n)
-    elif unit == 'D':
-        return relativedelta(days=n)
-    elif unit == 'Y':
-        return relativedelta(years=n)
-    elif unit == 'Q':
-        return relativedelta(months=3 * n)
-    elif unit == 'F':
-        return relativedelta(months=3 * n)  # todo
-    else:
-        raise BaseException("Unknown unit %s" % unit)
 
 def generate_schedule(start, end, step, stub_type=StubType.FRONT_STUB_SHORT):
     assert isinstance(start, int)
