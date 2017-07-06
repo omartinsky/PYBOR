@@ -16,12 +16,15 @@ Please refer to the [Jupyter notebook](main.ipynb) for the overview of main feat
 ## Curve naming conventions
 For the purpose of this project, the curves are named in the following way:
 
+##### Projection curves
 * **USDLIBOR3M** refers to USD BBA LIBOR reference rate with 3 month tenor
 * **GBPSONIA** refers to overnight GBP SONIA compound reference rate
 * **USDOIS** refers to overnight USD Federals Fund compound reference rate
 
+##### Mono-currency discounting curves
 In a mono-currency context, the reference rates above can be used also for discounting (e.g. **USDOIS** curve used for discounting of collateralised USD trades and **USDLIBOR3M** curve for discounting of unsecured USD trades).
 
+##### Cross-currency discounting curves
 In a cross-currency context, the naming convention for discounting curves is as follows:
 
     <CurrencyOfCashFlow>-<RatePaidOnCollateral>
