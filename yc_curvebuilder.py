@@ -116,8 +116,8 @@ class CurveBuilder:
     def __init__(self, excel_file, eval_date, progress_monitor=None):
         assert os.path.exists(excel_file)
         xl = ExcelFile(excel_file)
-        self.df_instruments = xl.parse('Instrument Properties', index_col='Name', parse_cols='A:L').dropna()
-        self.df_curves = xl.parse('Curve Properties', index_col='Curve', parse_cols='A:C').dropna()
+        self.df_instruments = xl.parse('Instrument Properties', index_col='Name', parse_cols='A:L')
+        self.df_curves = xl.parse('Curve Properties', index_col='Curve', parse_cols='A:C')
         if (len(self.df_curves) == 0):
             raise BaseException("No curves found in spreadsheet")
         self.curve_templates = list()

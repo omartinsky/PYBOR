@@ -69,7 +69,7 @@ class Conventions:
         conventions.map = dict()
         assert os.path.exists(excel_file)
         xl = ExcelFile(excel_file)
-        dataframe = xl.parse('Conventions', index_col='Index', parse_cols='A:E').dropna()
+        dataframe = xl.parse('Conventions', index_col='Index', parse_cols='A:E')
         for index, row in dataframe.iterrows():
             conv = Convention(
                 reset_frequency = Tenor(row['Reset Frequency']),
