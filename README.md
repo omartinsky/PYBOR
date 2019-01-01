@@ -17,23 +17,23 @@ Please refer to the [Jupyter notebook](main.ipynb) for the overview of main feat
 For the purpose of this project, the curves are named in the following way:
 
 ##### Projection curves
-* **USDLIBOR3M** refers to USD BBA LIBOR reference rate with 3 month tenor
-* **GBPSONIA** refers to overnight GBP SONIA compound reference rate
-* **USDOIS** refers to overnight USD Federals Fund compound reference rate
+* **USD.LIBOR.3M** refers to USD BBA LIBOR reference rate with 3 month tenor
+* **GBP.SONIA** refers to overnight GBP SONIA compound reference rate
+* **USD.OIS** refers to overnight USD Federals Fund compound reference rate
 
 ##### Mono-currency discounting curves
-In a mono-currency context, the reference rates above can be used also for discounting (e.g. **USDOIS** curve used for discounting of collateralised USD trades and **USDLIBOR3M** curve for discounting of unsecured USD trades).
+In a mono-currency context, the reference rates above can be used also for discounting (e.g. **USD.OIS** curve used for discounting of collateralised USD trades and **USD.LIBOR.3M** curve for discounting of unsecured USD trades).
 
 ##### Cross-currency discounting curves
 In a cross-currency context, the naming convention for discounting curves is as follows:
 
-    <CurrencyOfCashFlow>-<RatePaidOnCollateral>
+    <CurrencyOfCashFlow>/<RatePaidOnCollateral>
 
 Few examples:
 
-* **USD-USDOIS** Discounting curve for USD cash-flows of a trade which is collateralised in USD, paying collateral rate linked to USDOIS. Names USD-USDOIS and USDOIS refers to the same curve.
-* **GBP-GBPSONIA** Discounting curve for GBP cash-flows of a trade which is collateralised in GBP, paying collateral rate linked to GBPSONIA. Names GBP- GBPSONIA and GBPSONIA refers to the same curve.
-* **GBP-USDOIS** Cross-currency discounting curve for GBP cash-flows of a trade which is collateralised in USD, paying collateral rate linked to USDOIS.
+* **USD/USD.OIS** Discounting curve for USD cash-flows of a trade which is collateralised in USD, paying collateral rate linked to USD.OIS. Names USD/USD.OIS and USD.OIS refers to the same curve.
+* **GBP/GBP.SONIA** Discounting curve for GBP cash-flows of a trade which is collateralised in GBP, paying collateral rate linked to GBP.SONIA. Names GBP/GBP.SONIA and GBP.SONIA refers to the same curve.
+* **GBP/USD.OIS** Cross-currency discounting curve for GBP cash-flows of a trade which is collateralised in USD, paying collateral rate linked to USD.OIS.
 
 
 ## TODO

@@ -200,10 +200,10 @@ class ConventionsTest(unittest.TestCase):
 class InstrumentTests(unittest.TestCase):
     def test_deposit(self):
         cm = {
-            'USDLIBOR3M' : Curve('USDLIBOR3M', 42000+0, 42000+array([0.001, 1, 2, 200]), array([.99, .98, .975, .95]), InterpolationMode.LINEAR_LOGDF),
+            'USD.LIBOR.3M' : Curve('USD.LIBOR.3M', 42000+0, 42000+array([0.001, 1, 2, 200]), array([.99, .98, .975, .95]), InterpolationMode.LINEAR_LOGDF),
         }
-        i = Deposit(name='USDLIBOR3M/Deposit/3M',
-                    curve_forecast='USDLIBOR3M',
+        i = Deposit(name='USD.LIBOR.3M/Deposit/3M',
+                    curve_forecast='USD.LIBOR.3M',
                     trade_date=42000 + 1,
                     start='E',
                     length=Tenor('6M'),
@@ -213,10 +213,10 @@ class InstrumentTests(unittest.TestCase):
 
     def test_future(self):
         cm = {
-            'USDLIBOR3M' : Curve('USDLIBOR3M', 42000+0, 42000+array([250, 500,750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
+            'USD.LIBOR.3M' : Curve('USD.LIBOR.3M', 42000+0, 42000+array([250, 500,750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
         }
         i = Future(name="Future",
-                   curve_forecast='USDLIBOR3M',
+                   curve_forecast='USD.LIBOR.3M',
                    trade_date=42000 + 1,
                    start='3F',
                    length=Tenor('3M'),
@@ -227,16 +227,16 @@ class InstrumentTests(unittest.TestCase):
 
     def test_mtm_swap(self):
         cm = {
-            'GBPLIBOR3M': Curve('GBPLIBOR3M', 42000+0, 42000+array([250, 500, 1750]), array([.945, .94, .93]), InterpolationMode.CUBIC_LOGDF),
-            'USDLIBOR3M': Curve('USDLIBOR3M', 42000+0, 42000+array([250, 500, 1750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
-            'GBP-USDOIS': Curve('GBP-USDOIS', 42000+0, 42000+array([250, 500, 1750]), array([.965, .96, .94]), InterpolationMode.CUBIC_LOGDF),
-            'USD-USDOIS': Curve('USD-USDOIS', 42000+0, 42000+array([250, 500, 1750]), array([.974, .92, .91]), InterpolationMode.CUBIC_LOGDF),
+            'GBP.LIBOR.3M': Curve('GBP.LIBOR.3M', 42000+0, 42000+array([250, 500, 1750]), array([.945, .94, .93]), InterpolationMode.CUBIC_LOGDF),
+            'USD.LIBOR.3M': Curve('USD.LIBOR.3M', 42000+0, 42000+array([250, 500, 1750]), array([.975, .95, .92]), InterpolationMode.CUBIC_LOGDF),
+            'GBP/USD.OIS': Curve('GBP/USD.OIS', 42000+0, 42000+array([250, 500, 1750]), array([.965, .96, .94]), InterpolationMode.CUBIC_LOGDF),
+            'USD/USD.OIS': Curve('USD/USD.OIS', 42000+0, 42000+array([250, 500, 1750]), array([.974, .92, .91]), InterpolationMode.CUBIC_LOGDF),
         }
         i = MtmCrossCurrencyBasisSwap(name="MtmCrossCurrencyBasisSwap",
-                                      curve_discount_l = 'GBP-USDOIS',
-                                      curve_discount_r = 'USD-USDOIS',
-                                      curve_forecast_l='GBPLIBOR3M',
-                                      curve_forecast_r='USDLIBOR3M',
+                                      curve_discount_l = 'GBP/USD.OIS',
+                                      curve_discount_r = 'USD/USD.OIS',
+                                      curve_forecast_l='GBP.LIBOR.3M',
+                                      curve_forecast_r='USD.LIBOR.3M',
                                       trade_date=42000 + 1,
                                       start='E',
                                       length=Tenor('3Y'),
@@ -291,13 +291,13 @@ class CurveInterpolationTest(unittest.TestCase):
 
 class CurveMapTests(unittest.TestCase):
     def test_plot(self):
-        c1 = Curve('USDLIBOR3M', 42000+0, 42000+array([0.001, 1, 2]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
-        c2 = Curve('USDLIBOR6M', 42000+0, 42000+array([0.002, 3, 4]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        c1 = Curve('USD.LIBOR.3M', 42000+0, 42000+array([0.001, 1, 2]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
+        c2 = Curve('USD.LIBOR.6M', 42000+0, 42000+array([0.002, 3, 4]), array([.99, .98, .975]), InterpolationMode.CUBIC_LOGDF)
         cm = CurveMap()
         cm.add_curve(c1)
         cm.add_curve(c2)
         self.assertEqual(len(cm), 2)
-        self.assertEqual(sorted(cm.keys()), ['USDLIBOR3M','USDLIBOR6M'])
+        self.assertEqual(sorted(cm.keys()), ['USD.LIBOR.3M','USD.LIBOR.6M'])
         #cm.plot(".*", mode=PlottingMode.DISC_FACTOR)
         #cm.plot(".*", mode=PlottingMode.ZERO_RATE)
         #cm.plot(".*", mode=PlottingMode.FWD_RATE)
@@ -306,12 +306,12 @@ class CurveConstructorTests(unittest.TestCase):
     def test_curve_construction(self):
         t = array([42738, 47604, 52471, 57538, 62204, 67071, 71939])
         df = array([1., 0.76592834, 0.5292694, 0.36397074, 0.24525508, 0.15913423, 0.10440653])
-        self.assertRaises(BaseException, lambda: Curve('USDLIBOR3M', 42738, t, df, InterpolationMode.LINEAR_LOGDF))
+        self.assertRaises(BaseException, lambda: Curve('USD.LIBOR.3M', 42738, t, df, InterpolationMode.LINEAR_LOGDF))
 
     def test_short_rate_model(self):
         random.seed(1)
         times = [i for i in range(2, 2+80*365+1, 10)]
-        curve = CurveConstructor.FromShortRateModel('USDOIS', times, r0=.022, speed=0.0001, \
+        curve = CurveConstructor.FromShortRateModel('USD.OIS', times, r0=.022, speed=0.0001, \
                              mean=.05, sigma=0.0005, interpolation=InterpolationMode.LINEAR_LOGDF)
 
         self.assertEqual(curve.times_[0], 2)
@@ -324,9 +324,9 @@ class CurveConstructorTests(unittest.TestCase):
     def add_two_curves(self):
         random.seed(1)
         times = [i for i in range(2, 2+80*365+1, 10)]
-        curve1 = CurveConstructor.FromShortRateModel('USDOIS', times, r0=.022, speed=0.0001, \
+        curve1 = CurveConstructor.FromShortRateModel('USD.OIS', times, r0=.022, speed=0.0001, \
                              mean=.05, sigma=0.0005, interpolation=InterpolationMode.LINEAR_LOGDF)
-        curve2 = CurveConstructor.FromShortRateModel('USDOIS', times, r0=.022, speed=0.0001, \
+        curve2 = CurveConstructor.FromShortRateModel('USD.OIS', times, r0=.022, speed=0.0001, \
                              mean=.05, sigma=0.0005, interpolation=InterpolationMode.LINEAR_LOGDF)
         df1 = curve1.dfs_[-1]
         df2 = curve2.dfs_[-1]
@@ -341,13 +341,13 @@ class BuilderCompositeTests(unittest.TestCase):
     def test_builder(self):
         eval_date = 42000
         curve_builder = CurveBuilder('engine_test.xlsx', eval_date)
-        self.assertEqual(curve_builder.get_curve_names(), ['USDLIBOR3M', 'USDLIBOR6M', 'USD-USDOIS'])
+        self.assertEqual(curve_builder.get_curve_names(), ['USD.LIBOR.3M', 'USD.LIBOR.6M', 'USD/USD.OIS'])
         self.assertEqual(len(list(curve_builder.curve_templates)), 3)
 
         pricing_curvemap = CurveMap()
-        s_libor3 = 'USDLIBOR3M'
-        s_libor6 = 'USDLIBOR6M'
-        s_ois = 'USD-USDOIS'
+        s_libor3 = 'USD.LIBOR.3M'
+        s_libor6 = 'USD.LIBOR.6M'
+        s_ois = 'USD/USD.OIS'
         constructor = CurveConstructor.FromShortRateModel
         interp = InterpolationMode.LINEAR_LOGDF
         t = [i for i in range(eval_date+0, eval_date+80*365+1, 10)]
@@ -381,7 +381,7 @@ class BuilderCompositeTests(unittest.TestCase):
         aae(actual_sonia_df, expected_sonia_df)
 
         risk_engine = RiskCalculator(curve_builder, build_output)
-        instrument_regex = "USD\-.*"
+        instrument_regex = "USD/.*"
         numpy.testing.assert_equal(len(risk_engine.find_instruments(instrument_regex)), 32)
         instruments_to_bump = risk_engine.find_instruments(instrument_regex)
         bumped_curves = risk_engine.get_bumped_curvemap(instruments_to_bump, 1e-4, BumpType.FULL_REBUILD)
