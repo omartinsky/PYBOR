@@ -35,6 +35,25 @@ Few examples:
 * **GBP/GBP.SONIA** Discounting curve for GBP cash-flows of a trade which is collateralised in GBP, paying collateral rate linked to GBP.SONIA. Names GBP/GBP.SONIA and GBP.SONIA refers to the same curve.
 * **GBP/USD.OIS** Cross-currency discounting curve for GBP cash-flows of a trade which is collateralised in USD, paying collateral rate linked to USD.OIS.
 
+## Screenshots
+
+### Interpolation
+
+Illustration of different interpolation modes which are supported by PYBOR:
+
+![](readme-images/interpolation.png)
+
+### Jacobian Risk
+
+First-order risk (instrument-to-curve pillar sensitivity) which is used to transform risk views.
+
+![](readme-images/jacobian_matrix.png)
+
+### Curve Risk
+
+Effect of bumping 20Y Libor 3M Swap rate on different curves:
+
+![](readme-images/curve_bump.png)
 
 ## TODO
 * Automatic resolution of solve stages for global optimizer
