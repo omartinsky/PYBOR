@@ -90,9 +90,7 @@ def next_imm_date(d: dt.date) -> dt.date:
         return d.replace(day=third_wednesday(d))
 
 
-def date_step(date, tenor, preserve_eom=False):
-    assert isinstance(date, int)
-    assert isinstance(tenor, Tenor)
+def date_step(date: int, tenor: Tenor, preserve_eom: bool = False):
     assert tenor.unit != 'E'
     pydate = exceldate_to_pydate(date)
     if tenor.unit == 'F':

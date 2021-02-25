@@ -21,6 +21,7 @@
 
 from instruments.base_instrument import *
 
+
 class TermDeposit(Instrument):
     @staticmethod
     def CreateFromDataFrameRow(name, eval_date, row):
@@ -35,13 +36,15 @@ class TermDeposit(Instrument):
                            length=Tenor(length),
                            convention=global_conventions.get(convL))
 
-    def __init__(self, name, curve_forecast, curve_discount, trade_date, start, length, convention):
+    def __init__(self,
+                 name: str,
+                 curve_forecast: str,
+                 curve_discount: str,
+                 trade_date: int,
+                 start,
+                 length: Tenor,
+                 convention: Convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast, str)
-        assert_type(curve_discount, str)
-        assert_type(convention, Convention)
-        assert_type(trade_date, int)
         self.convention_ = convention
         self.curve_forecast_ = curve_forecast
         self.curve_discount_ = curve_discount
@@ -64,4 +67,3 @@ class TermDeposit(Instrument):
         df_e = df[-1]
         price = (df_s - df_e - nominator) / denumerator
         return price
-

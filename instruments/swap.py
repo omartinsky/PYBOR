@@ -21,6 +21,7 @@
 
 from instruments.base_instrument import *
 
+
 # Example: Fixed USD vs. Floating USD.LIBOR.3M
 
 class Swap(Instrument):
@@ -38,13 +39,16 @@ class Swap(Instrument):
                     convention_fixed=global_conventions.get(convL),
                     convention_float=global_conventions.get(convR))
 
-    def __init__(self, name, curve_forecast, curve_discount, trade_date, start, length, convention_fixed, convention_float):
+    def __init__(self,
+                 name: str,
+                 curve_forecast: str,
+                 curve_discount: str,
+                 trade_date,
+                 start,
+                 length,
+                 convention_fixed: Convention,
+                 convention_float: Convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast, str)
-        assert_type(curve_discount, str)
-        assert_type(convention_fixed, Convention)
-        assert_type(convention_float, Convention)
         self.convention_fixed_ = convention_fixed
         self.convention_float_ = convention_float
         self.curve_forecast_ = curve_forecast

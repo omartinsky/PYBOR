@@ -21,6 +21,7 @@
 
 from instruments.base_instrument import *
 
+
 # Example: USD.LIBOR.3M vs. USD.LIBOR.6M + spread
 
 class BasisSwap(Instrument):
@@ -39,14 +40,16 @@ class BasisSwap(Instrument):
                          convention_l=global_conventions.get(convL),
                          convention_r=global_conventions.get(convR))
 
-    def __init__(self, name, curve_discount, curve_forecast_l, curve_forecast_r, trade_date, start, length, convention_l, convention_r):
+    def __init__(self, name: str,
+                 curve_discount: str,
+                 curve_forecast_l: str,
+                 curve_forecast_r: str,
+                 trade_date,
+                 start,
+                 length,
+                 convention_l: Convention,
+                 convention_r: Convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast_l, str)
-        assert_type(curve_forecast_r, str)
-        assert_type(curve_discount, str)
-        assert_type(convention_l, Convention)
-        assert_type(convention_r, Convention)
         self.convention_l_ = convention_l
         self.convention_r_ = convention_r
         self.curve_forecast_l_ = curve_forecast_l

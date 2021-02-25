@@ -30,17 +30,19 @@ class ZeroRate(Instrument):
         assert_is_not_set([discR, fcastR, convR])
         return ZeroRate(name,
                         curve_forecast=fcastL,
-                        curve_discount=discL,
                         trade_date=eval_date,
                         start=start,
                         length=Tenor(length),
                         convention=global_conventions.get(convL))
 
-    def __init__(self, name, curve_forecast, trade_date, start, length, convention):
+    def __init__(self,
+                 name: str,
+                 curve_forecast: str,
+                 trade_date: int,
+                 start,
+                 length,
+                 convention: Convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast, str)
-        assert_type(trade_date, int)
         self.curve_forecast_ = curve_forecast
         self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)

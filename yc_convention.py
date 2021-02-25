@@ -1,5 +1,6 @@
 # Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
+from dataclasses import dataclass
 from os.path import join, dirname
 
 from yc_date import *
@@ -35,16 +36,12 @@ class CouponFreq(enum.Enum):
     ZERO = 3
 
 
+@dataclass
 class Convention:
-    def __init__(self, reset_frequency, calculation_frequency, payment_frequency, dcc):
-        assert_type(reset_frequency, Tenor)
-        assert_type(calculation_frequency, Tenor)
-        assert_type(payment_frequency, Tenor)
-        assert_type(dcc, DCC)
-        self.reset_frequency = reset_frequency
-        self.calculation_frequency = calculation_frequency
-        self.payment_frequency = payment_frequency
-        self.dcc = dcc
+    reset_frequency: Tenor
+    calculation_frequency: Tenor
+    payment_frequency: Tenor
+    dcc: DCC
 
 
 class Conventions:

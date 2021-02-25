@@ -21,12 +21,14 @@
 
 from instruments.base_instrument import *
 
+
 class ConvexityModel:
     def __init__(self):
         pass
+
     def get_convexity(self, day_count_fraction):
         assert isinstance(day_count_fraction, float)
-        return day_count_fraction**2 * 0.00002
+        return day_count_fraction ** 2 * 0.00002
 
 
 class Future(Instrument):
@@ -37,15 +39,19 @@ class Future(Instrument):
         assert_is_not_set([fcastR, discL, discR, convR])
         return Future(name,
                       curve_forecast=fcastL,
-                      trade_date= eval_date,
+                      trade_date=eval_date,
                       start=start,
                       length=Tenor(length),
                       convention=global_conventions.get(convL))
 
-    def __init__(self, name, curve_forecast, trade_date, start, length, convention):
+    def __init__(self,
+                 name: str,
+                 curve_forecast: str,
+                 trade_date,
+                 start,
+                 length: Tenor,
+                 convention: Convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast, str)
         self.curve_forecast = curve_forecast
         self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
