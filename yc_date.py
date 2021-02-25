@@ -139,9 +139,6 @@ def calculate_spot_date(trade_date, spot_offset, calendar):
     return spot_date
 
 
-def create_date(arg, reference_date=None):  # TODO remove this and use create_excel_date instead
-    return create_excel_date(arg, reference_date)
-
 
 def create_py_date(arg, reference_date=None):
     return exceldate_to_pydate(create_excel_date(arg, reference_date))
@@ -164,7 +161,7 @@ def create_excel_date(arg, reference_date=None):  # Creates excel date
         return ret
     elif isinstance(arg, Tenor):
         if arg.unit == 'E':
-            return create_date(reference_date)
+            return create_excel_date(reference_date)
         return date_step(reference_date, arg)
     assert False, (type(arg), arg)
 

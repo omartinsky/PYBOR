@@ -55,7 +55,7 @@ class BasisSwap(Instrument):
         self.curve_forecast_l_ = curve_forecast_l
         self.curve_forecast_r_ = curve_forecast_r
         self.curve_discount_ = curve_discount
-        self.start_ = create_date(start, trade_date)
+        self.start_ = create_excel_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)

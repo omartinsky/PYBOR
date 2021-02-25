@@ -48,7 +48,7 @@ class TermDeposit(Instrument):
         self.convention_ = convention
         self.curve_forecast_ = curve_forecast
         self.curve_discount_ = curve_discount
-        self.start_ = create_date(start, trade_date)
+        self.start_ = create_excel_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_ = generate_schedule(self.start_, self.end_, self.convention_.payment_frequency)
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)

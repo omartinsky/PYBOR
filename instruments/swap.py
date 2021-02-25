@@ -53,7 +53,7 @@ class Swap(Instrument):
         self.convention_float_ = convention_float
         self.curve_forecast_ = curve_forecast
         self.curve_discount_ = curve_discount
-        self.start_ = create_date(start, trade_date)
+        self.start_ = create_excel_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_fixed_ = generate_schedule(self.start_, self.end_, self.convention_fixed_.payment_frequency)
         self.accruals_float_ = generate_schedule(self.start_, self.end_, self.convention_float_.payment_frequency)

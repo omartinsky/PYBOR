@@ -53,7 +53,7 @@ class Future(Instrument):
                  convention: Convention):
         super().__init__(name)
         self.curve_forecast = curve_forecast
-        self.start_ = create_date(start, trade_date)
+        self.start_ = create_excel_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_ = np.array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]

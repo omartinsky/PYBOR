@@ -18,6 +18,10 @@ def arr(*args) -> np.array:
     return np.array(args)
 
 
+def dte(arg, reference_date=None):
+    return create_excel_date(arg, reference_date)
+
+
 class EnumTests(unittest.TestCase):
     def test_enum_from_string(self):
         class TestEnum(enum.Enum):
@@ -48,38 +52,38 @@ class DateTests(unittest.TestCase):
         self.assertEqual(exceldate_to_pydate(d), date(1900, 3, 1))
 
     def test_date_creation(self):
-        self.assertEqual(create_date(43000), 43000)
-        self.assertEqual(create_date('E', 43000), 43000)
-        self.assertEqual(create_date('E', create_date('20170922')), 43000)
-        self.assertEqual(create_date('1M', 43000), 43030)
-        self.assertEqual(create_date(Tenor('1M'), 43000), 43030)
-        self.assertEqual(create_date('E+1M', 43000), 43030)
-        self.assertEqual(create_date('E+E+1Y+1M', 43000), 43395)
-        self.assertEqual(create_date('1970-01-03'), 25571)
-        self.assertEqual(create_date('1970/01/03'), 25571)
-        self.assertEqual(create_date('19700103'), 25571)
+        self.assertEqual(dte(43000), 43000)
+        self.assertEqual(dte('E', 43000), 43000)
+        self.assertEqual(dte('E', dte('20170922')), 43000)
+        self.assertEqual(dte('1M', 43000), 43030)
+        self.assertEqual(dte(Tenor('1M'), 43000), 43030)
+        self.assertEqual(dte('E+1M', 43000), 43030)
+        self.assertEqual(dte('E+E+1Y+1M', 43000), 43395)
+        self.assertEqual(dte('1970-01-03'), 25571)
+        self.assertEqual(dte('1970/01/03'), 25571)
+        self.assertEqual(dte('19700103'), 25571)
 
     def test_dcc(self):
         ACT360 = DCC.ACT360
         ACT365 = DCC.ACT365
-        self.assertEqual(calculate_dcf(create_date('1995-01-01'), create_date('1996-01-01'), ACT365), 1)
-        self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT365), 366 / 365)
-        self.assertEqual(calculate_dcf(create_date('1996-01-01'), create_date('1997-01-01'), ACT360), 366 / 360)
+        self.assertEqual(calculate_dcf(dte('1995-01-01'), dte('1996-01-01'), ACT365), 1)
+        self.assertEqual(calculate_dcf(dte('1996-01-01'), dte('1997-01-01'), ACT365), 366 / 365)
+        self.assertEqual(calculate_dcf(dte('1996-01-01'), dte('1997-01-01'), ACT360), 366 / 360)
 
     def test_generate_schedule(self):
-        exceptionLambda = lambda: generate_schedule(create_date('1996-01-01'), create_date('1997-01-03'), Tenor("3M"),
+        exceptionLambda = lambda: generate_schedule(dte('1996-01-01'), dte('1997-01-03'), Tenor("3M"),
                                                     STUB_NOT_ALLOWED)
         self.assertRaises(BaseException, exceptionLambda)
 
-        schedule0 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"),
+        schedule0 = generate_schedule(dte('1996-01-01'), dte('1997-01-01'), Tenor("3M"),
                                       STUB_NOT_ALLOWED)
-        schedule1 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"),
+        schedule1 = generate_schedule(dte('1996-01-01'), dte('1997-01-01'), Tenor("3M"),
                                       BACK_STUB_SHORT)
-        schedule2 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"),
+        schedule2 = generate_schedule(dte('1996-01-01'), dte('1997-01-01'), Tenor("3M"),
                                       BACK_STUB_LONG)
-        schedule3 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"),
+        schedule3 = generate_schedule(dte('1996-01-01'), dte('1997-01-01'), Tenor("3M"),
                                       FRONT_STUB_SHORT)
-        schedule4 = generate_schedule(create_date('1996-01-01'), create_date('1997-01-01'), Tenor("3M"),
+        schedule4 = generate_schedule(dte('1996-01-01'), dte('1997-01-01'), Tenor("3M"),
                                       FRONT_STUB_LONG)
         self.assertListEqual(list(schedule0), [35065, 35156, 35247, 35339, 35431])
         self.assertListEqual(list(schedule1), [35065, 35156, 35247, 35339, 35431])
@@ -88,20 +92,20 @@ class DateTests(unittest.TestCase):
         self.assertListEqual(list(schedule4), [35065, 35156, 35247, 35339, 35431])
 
         stub_type = BACK_STUB_SHORT
-        schedule = generate_schedule(create_date('1996-01-01'), create_date('1996-12-20'), Tenor("3M"), stub_type)
+        schedule = generate_schedule(dte('1996-01-01'), dte('1996-12-20'), Tenor("3M"), stub_type)
         self.assertEqual(type(schedule), numpy.ndarray)
         self.assertListEqual(list(schedule), [35065, 35156, 35247, 35339, 35419])
 
         stub_type = BACK_STUB_LONG
-        schedule = generate_schedule(create_date('1996-01-01'), create_date('1996-12-20'), Tenor("3M"), stub_type)
+        schedule = generate_schedule(dte('1996-01-01'), dte('1996-12-20'), Tenor("3M"), stub_type)
         self.assertListEqual(list(schedule), [35065, 35156, 35247, 35419])
 
         stub_type = FRONT_STUB_SHORT
-        schedule = generate_schedule(create_date('1996-01-20'), create_date('1997-01-01'), Tenor("3M"), stub_type)
+        schedule = generate_schedule(dte('1996-01-20'), dte('1997-01-01'), Tenor("3M"), stub_type)
         self.assertListEqual(list(schedule), [35084, 35156, 35247, 35339, 35431])
 
         stub_type = FRONT_STUB_LONG
-        schedule = generate_schedule(create_date('1996-01-20'), create_date('1997-01-01'), Tenor("3M"), stub_type)
+        schedule = generate_schedule(dte('1996-01-20'), dte('1997-01-01'), Tenor("3M"), stub_type)
         self.assertListEqual(list(schedule), [35084, 35247, 35339, 35431])
 
     def test_tenor(self):
@@ -126,24 +130,24 @@ class DateTests(unittest.TestCase):
 
     def test_date_step(self):
         from datetime import date
-        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('3M')), create_date(date(2017, 5, 10)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('1Y')), create_date(date(2018, 2, 10)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('-1Y')), create_date(date(2016, 2, 10)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 31)), Tenor('1M')), create_date(date(2017, 4, 30)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 10)), Tenor('-1Y'), preserve_eom=True),
-                         create_date(date(2016, 2, 10)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('-1Y'), preserve_eom=True),
-                         create_date(date(2016, 2, 29)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1M'), preserve_eom=True),
-                         create_date(date(2017, 3, 31)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 31)), Tenor('1M'), preserve_eom=True),
-                         create_date(date(2017, 4, 30)))
-        self.assertEqual(date_step(create_date(date(2017, 2, 28)), Tenor('1D'), preserve_eom=True),
-                         create_date(date(2017, 3, 31)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 14)), Tenor('1F')), create_date(date(2017, 3, 15)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 14)), Tenor('2F')), create_date(date(2017, 6, 21)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 15)), Tenor('1F')), create_date(date(2017, 6, 21)))
-        self.assertEqual(date_step(create_date(date(2017, 3, 15)), Tenor('2F')), create_date(date(2017, 9, 20)))
+        self.assertEqual(date_step(dte(date(2017, 2, 10)), Tenor('3M')), dte(date(2017, 5, 10)))
+        self.assertEqual(date_step(dte(date(2017, 2, 10)), Tenor('1Y')), dte(date(2018, 2, 10)))
+        self.assertEqual(date_step(dte(date(2017, 2, 10)), Tenor('-1Y')), dte(date(2016, 2, 10)))
+        self.assertEqual(date_step(dte(date(2017, 3, 31)), Tenor('1M')), dte(date(2017, 4, 30)))
+        self.assertEqual(date_step(dte(date(2017, 2, 10)), Tenor('-1Y'), preserve_eom=True),
+                         dte(date(2016, 2, 10)))
+        self.assertEqual(date_step(dte(date(2017, 2, 28)), Tenor('-1Y'), preserve_eom=True),
+                         dte(date(2016, 2, 29)))
+        self.assertEqual(date_step(dte(date(2017, 2, 28)), Tenor('1M'), preserve_eom=True),
+                         dte(date(2017, 3, 31)))
+        self.assertEqual(date_step(dte(date(2017, 3, 31)), Tenor('1M'), preserve_eom=True),
+                         dte(date(2017, 4, 30)))
+        self.assertEqual(date_step(dte(date(2017, 2, 28)), Tenor('1D'), preserve_eom=True),
+                         dte(date(2017, 3, 31)))
+        self.assertEqual(date_step(dte(date(2017, 3, 14)), Tenor('1F')), dte(date(2017, 3, 15)))
+        self.assertEqual(date_step(dte(date(2017, 3, 14)), Tenor('2F')), dte(date(2017, 6, 21)))
+        self.assertEqual(date_step(dte(date(2017, 3, 15)), Tenor('1F')), dte(date(2017, 6, 21)))
+        self.assertEqual(date_step(dte(date(2017, 3, 15)), Tenor('2F')), dte(date(2017, 9, 20)))
 
     def test_date_roll(self):
         from datetime import date
@@ -151,42 +155,42 @@ class DateTests(unittest.TestCase):
         F = RollType.FOLLOWING
         P = RollType.PRECEDING
         wc = WeekendCalendar()
-        self.assertEqual(date_roll(create_date(date(2017, 2, 17)), F, wc), create_date(date(2017, 2, 17)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 18)), F, wc), create_date(date(2017, 2, 20)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 19)), F, wc), create_date(date(2017, 2, 20)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 20)), F, wc), create_date(date(2017, 2, 20)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 17)), F, wc), dte(date(2017, 2, 17)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 18)), F, wc), dte(date(2017, 2, 20)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 19)), F, wc), dte(date(2017, 2, 20)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 20)), F, wc), dte(date(2017, 2, 20)))
 
-        self.assertEqual(date_roll(create_date(date(2017, 2, 17)), P, wc), create_date(date(2017, 2, 17)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 18)), P, wc), create_date(date(2017, 2, 17)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 19)), P, wc), create_date(date(2017, 2, 17)))
-        self.assertEqual(date_roll(create_date(date(2017, 2, 20)), P, wc), create_date(date(2017, 2, 20)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 17)), P, wc), dte(date(2017, 2, 17)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 18)), P, wc), dte(date(2017, 2, 17)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 19)), P, wc), dte(date(2017, 2, 17)))
+        self.assertEqual(date_roll(dte(date(2017, 2, 20)), P, wc), dte(date(2017, 2, 20)))
 
     def test_create_spot_date(self):
         from datetime import date
-        d = create_date(date(2017, 1, 12))  # Thursday
+        d = dte(date(2017, 1, 12))  # Thursday
         d2 = calculate_spot_date(d, 3, WeekendCalendar())
         self.assertEqual(exceldate_to_pydate(d2), date(2017, 1, 17))
 
     def test_calendar(self):
         from datetime import date
         cal = WeekendCalendar()
-        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 13))))
-        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 14))))
-        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 15))))
-        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 16))))
-        self.assertFalse(cal.is_holiday(create_date(date(2017, 2, 17))))
-        self.assertTrue(cal.is_holiday(create_date(date(2017, 2, 18))))
-        self.assertTrue(cal.is_holiday(create_date(date(2017, 2, 19))))
+        self.assertFalse(cal.is_holiday(dte(date(2017, 2, 13))))
+        self.assertFalse(cal.is_holiday(dte(date(2017, 2, 14))))
+        self.assertFalse(cal.is_holiday(dte(date(2017, 2, 15))))
+        self.assertFalse(cal.is_holiday(dte(date(2017, 2, 16))))
+        self.assertFalse(cal.is_holiday(dte(date(2017, 2, 17))))
+        self.assertTrue(cal.is_holiday(dte(date(2017, 2, 18))))
+        self.assertTrue(cal.is_holiday(dte(date(2017, 2, 19))))
 
-        cal1 = EnumeratedCalendar({create_date(date(2017, 2, 16))})
-        self.assertTrue(cal1.is_holiday(create_date(date(2017, 2, 16))))
+        cal1 = EnumeratedCalendar({dte(date(2017, 2, 16))})
+        self.assertTrue(cal1.is_holiday(dte(date(2017, 2, 16))))
 
-        cal2 = EnumeratedCalendar({create_date(date(2017, 2, 17))})
-        self.assertTrue(cal2.is_holiday(create_date(date(2017, 2, 17))))
+        cal2 = EnumeratedCalendar({dte(date(2017, 2, 17))})
+        self.assertTrue(cal2.is_holiday(dte(date(2017, 2, 17))))
 
         cal12 = union_calendars([cal1, cal2])
-        self.assertTrue(cal12.is_holiday(create_date(date(2017, 2, 16))))
-        self.assertTrue(cal12.is_holiday(create_date(date(2017, 2, 17))))
+        self.assertTrue(cal12.is_holiday(dte(date(2017, 2, 16))))
+        self.assertTrue(cal12.is_holiday(dte(date(2017, 2, 17))))
 
         lon_nyk = global_calendars.get("London+NewYork")
         assert isinstance(lon_nyk, EnumeratedCalendar)

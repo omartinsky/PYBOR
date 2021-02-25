@@ -58,7 +58,7 @@ class MtmCrossCurrencyBasisSwap(Instrument):
         self.curve_forecast_r_ = curve_forecast_r
         self.curve_discount_l_ = curve_discount_l
         self.curve_discount_r_ = curve_discount_r
-        self.start_ = create_date(start, trade_date)
+        self.start_ = create_excel_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
         self.accruals_l_ = generate_schedule(self.start_, self.end_, self.convention_l_.payment_frequency)
         self.accruals_r_ = generate_schedule(self.start_, self.end_, self.convention_r_.payment_frequency)
