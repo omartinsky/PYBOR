@@ -1,17 +1,25 @@
 ﻿# Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
 
-import copy, enum, re
-import yc_curvebuilder
+import copy
+import enum
+import re
+from typing import List
+
+import numpy as np
+
+from yc_curvebuilder import BuildOutput, CurveBuilder
+
 
 class BumpType(enum.Enum):
     FULL_REBUILD = 0
     JACOBIAN_REBUILD = 1
 
+
 class RiskCalculator:
-    def __init__(self, curve_engine, build_output):
-        assert isinstance(curve_engine, yc_curvebuilder.CurveBuilder)
-        assert isinstance(build_output, yc_curvebuilder.BuildOutput)
+    def __init__(self, curve_engine, build_output: BuildOutput):
+        assert isinstance(curve_engine, CurveBuilder)
+        assert isinstance(build_output, BuildOutput)
         self.curve_engine = curve_engine
         self.build_output = build_output
         self.cache = dict()
@@ -51,25 +59,19 @@ class RiskCalculator:
         self.cache[key] = bumped_build_output.output_curvemap
         return bumped_build_output.output_curvemap
 
-    def get_bumped_curvemap_jacobian(self, instrument_list, par_rate_bump_amount):
-        from numpy import zeros, squeeze, array
-        from numpy.linalg import inv
-
-        assert isinstance(instrument_list, list)
-        assert isinstance(self.build_output, yc_curvebuilder.BuildOutput)
-
-        par_rate_bumps = zeros(len(self.build_output.instruments))
+    def get_bumped_curvemap_jacobian(self,
+                                     instrument_list: List,
+                                     par_rate_bump_amount):
+        par_rate_bumps = np.zeros(len(self.build_output.instruments))
         instrument_names = [i.get_name() for i in self.build_output.instruments]
         for instrument_name in instrument_list:
             ix = instrument_names.index(instrument_name)
             par_rate_bumps[ix] = par_rate_bump_amount
 
-        jacobian_dPdI = inv(self.build_output.jacobian_dIdP)
+        jacobian_dPdI = np.linalg.pinv(self.build_output.jacobian_dIdP)
         curvemap_bumped = copy.deepcopy(self.build_output.output_curvemap)
 
-        responses = par_rate_bumps * jacobian_dPdI
-        assert responses.shape[0] == 1  # just one row
-        responses = squeeze(array(responses))
+        responses = np.dot(par_rate_bumps, jacobian_dPdI)
 
         dfs = curvemap_bumped.get_all_dofs(curvemap_bumped.keys())
         dfs += responses

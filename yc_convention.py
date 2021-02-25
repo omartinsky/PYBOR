@@ -1,9 +1,13 @@
 # Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
+from os.path import join, dirname
 
 from yc_date import *
 from pandas import *
 import enum, os
+import pandas as pd
+
+from yc_helpers import enum_from_string, assert_type
 
 
 class DCC(enum.Enum):
@@ -30,6 +34,7 @@ class CouponFreq(enum.Enum):
     QUARTERLY = 2
     ZERO = 3
 
+
 class Convention:
     def __init__(self, reset_frequency, calculation_frequency, payment_frequency, dcc):
         assert_type(reset_frequency, Tenor)
@@ -41,25 +46,31 @@ class Convention:
         self.payment_frequency = payment_frequency
         self.dcc = dcc
 
+
 class Conventions:
     def __init__(self):
         self.map = dict()
 
-    def FromSpreadsheet(excel_file):
+    @staticmethod
+    def FromSpreadsheet(excel_file: str):
+        """
+        Notes:
+        Reset Frequency < Calculation Period Frequency indicates averaging / OIS leg
+        Calculation Period Frequency < Payment Frequency indicates compounting leg
+        """
         conventions = Conventions()
         conventions.map = dict()
         assert os.path.exists(excel_file)
-        xl = ExcelFile(excel_file)
-        dataframe = xl.parse('Conventions', index_col='Index', parse_cols='A:E')
+        dataframe = pd.read_csv(excel_file, delimiter='\t')
         for index, row in dataframe.iterrows():
             conv = Convention(
-                reset_frequency = Tenor(row['Reset Frequency']),
-                calculation_frequency = Tenor(row['Calculation Period Frequency']),
-                payment_frequency = Tenor(row['Payment Frequency']),
-                dcc = enum_from_string(DCC, row['Day Count Convention']),
+                reset_frequency=Tenor(row['Reset Frequency']),
+                calculation_frequency=Tenor(row['Calculation Period Frequency']),
+                payment_frequency=Tenor(row['Payment Frequency']),
+                dcc=enum_from_string(DCC, row['Day Count Convention']),
             )
             assert index not in conventions.map
-            conventions.map[index] = conv
+            conventions.map[row['Index']] = conv
         return conventions
 
     def get(self, convention_name):
@@ -67,4 +78,5 @@ class Conventions:
             raise BaseException("Unable to get convention %s" % convention_name)
         return self.map[convention_name]
 
-global_conventions = Conventions.FromSpreadsheet('conventions.xlsx')
+
+global_conventions = Conventions.FromSpreadsheet(join(dirname(__file__), 'conventions.txt'))

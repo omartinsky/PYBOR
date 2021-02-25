@@ -35,15 +35,12 @@ class Deposit(Instrument):
                        length=Tenor(length),
                        convention=global_conventions.get(convL))
 
-    def __init__(self, name, curve_forecast, trade_date, start, length, convention):
+    def __init__(self, name:str, curve_forecast:str, trade_date:int, start, length, convention):
         super().__init__(name)
-        assert_type(name, str)
-        assert_type(curve_forecast, str)
-        assert_type(trade_date, int)
         self.curve_forecast_ = curve_forecast
         self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
-        self.accruals_ = array([self.start_, self.end_])
+        self.accruals_ = np.array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
 
     def get_pillar_date(self):

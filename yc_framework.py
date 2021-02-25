@@ -1,5 +1,6 @@
 # Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
+from numpy import seterr
 
 from yc_curvebuilder import *
 from yc_curve import *

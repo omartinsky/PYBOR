@@ -1,12 +1,12 @@
 # Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
 
-from yc_helpers import *
-
 from dateutil.relativedelta import relativedelta
-from numpy import *
 import dateutil.parser
 import enum, calendar, datetime
+import datetime as dt
+import numpy as np
+
 
 class Tenor:
     def __init__(self, s):
@@ -24,38 +24,43 @@ class Tenor:
         return self.string == other.string
 
     def __neg__(self):
-        return Tenor("-%s" % self.string) if self.string[0]!="-" else Tenor(self.string[1:])
+        return Tenor("-%s" % self.string) if self.string[0] != "-" else Tenor(self.string[1:])
 
     def __str__(self):
         return self.string
 
+
 class RollType(enum.Enum):
-    NONE=0
-    FOLLOWING=1
-    PRECEDING=2
-    MODIFIED_FOLLOWING=3
-    MODIFIED_PRECEDING=4
+    NONE = 0
+    FOLLOWING = 1
+    PRECEDING = 2
+    MODIFIED_FOLLOWING = 3
+    MODIFIED_PRECEDING = 4
+
 
 class StubType(enum.Enum):
-    NOT_ALLOWED=0
-    FRONT_STUB_SHORT=1
-    FRONT_STUB_LONG=2
-    BACK_STUB_SHORT=3
-    BACK_STUB_LONG=4
+    NOT_ALLOWED = 0
+    FRONT_STUB_SHORT = 1
+    FRONT_STUB_LONG = 2
+    BACK_STUB_SHORT = 3
+    BACK_STUB_LONG = 4
+
 
 excelBaseDate = datetime.date(1899, 12, 30)
 
-def pydate_to_exceldate(d):
+
+def pydate_to_exceldate(d: dt.date) -> int:
     xldate = int((d - excelBaseDate).days)
     assert xldate >= 61, "Do not allow dates below 1 March 1900, Excel incorrectly assumes 1900 is a leap year"
     return xldate
 
-def exceldate_to_pydate(d):
-    assert isinstance(d, int)
+
+def exceldate_to_pydate(d: int) -> dt.date:
     assert d >= 61, "Do not allow dates below 1 March 1900, Excel incorrectly assumes 1900 is a leap year"
     return excelBaseDate + relativedelta(days=d)
 
-def create_relativedelta(n, unit):
+
+def create_relativedelta(n: int, unit: str) -> relativedelta:
     if unit == 'M':
         return relativedelta(months=n)
     elif unit == 'D':
@@ -67,19 +72,23 @@ def create_relativedelta(n, unit):
     else:
         raise BaseException("Unknown unit %s" % unit)
 
-def next_imm_date(d):
-    assert isinstance(d, datetime.date)
-    def third_wednesday(d):
+
+def next_imm_date(d: dt.date) -> dt.date:
+    assert isinstance(d, dt.date)
+
+    def third_wednesday(d: dt.date) -> int:
         d = d.replace(day=1)
-        x0 = d.weekday() - 2 # How many days since last wednesday
-        x1 = 7-x0 # how many days till next (1st wednesday)
+        x0 = d.weekday() - 2  # How many days since last wednesday
+        x1 = 7 - x0  # how many days till next (1st wednesday)
         return (d + relativedelta(days=x1 + 14 if x0 >= 1 else x1 + 7)).day
-    if d.month in [3,6,9,12]:
+
+    if d.month in [3, 6, 9, 12]:
         wed = third_wednesday(d)
         return next_imm_date(d + relativedelta(months=1)) if wed <= d.day else d.replace(day=wed)
     else:
-        d = d.replace(day=1).replace(month=int((d.month-1) / 3+1)*3)
+        d = d.replace(day=1).replace(month=int((d.month - 1) / 3 + 1) * 3)
         return d.replace(day=third_wednesday(d))
+
 
 def date_step(date, tenor, preserve_eom=False):
     assert isinstance(date, int)
@@ -101,17 +110,19 @@ def date_step(date, tenor, preserve_eom=False):
     date2 = pydate_to_exceldate(pydate2)
     return date2
 
+
 def date_roll(date, roll_type, calendar):
     assert isinstance(date, int)
     assert isinstance(roll_type, RollType)
-    if roll_type==RollType.FOLLOWING:
-        while calendar.is_holiday(date): date+=1
+    if roll_type == RollType.FOLLOWING:
+        while calendar.is_holiday(date): date += 1
         return date
     elif roll_type == RollType.PRECEDING:
         while calendar.is_holiday(date): date -= 1
         return date
     else:
         raise BaseException("Roll type %s not implemented", roll_type)
+
 
 def calculate_spot_date(trade_date, spot_offset, calendar):
     assert not calendar.is_holiday(trade_date)
@@ -123,13 +134,16 @@ def calculate_spot_date(trade_date, spot_offset, calendar):
     assert not calendar.is_holiday(spot_date)
     return spot_date
 
-def create_date(arg, reference_date=None): # TODO remove this and use create_excel_date instead
+
+def create_date(arg, reference_date=None):  # TODO remove this and use create_excel_date instead
     return create_excel_date(arg, reference_date)
+
 
 def create_py_date(arg, reference_date=None):
     return exceldate_to_pydate(create_excel_date(arg, reference_date))
 
-def create_excel_date(arg, reference_date=None): # Creates excel date
+
+def create_excel_date(arg, reference_date=None):  # Creates excel date
     if isinstance(arg, int):
         return arg
     elif isinstance(arg, datetime.date):
@@ -161,40 +175,37 @@ def calculate_dcf(date0, date1, dcc):
     return numerator / dcc.get_denominator()
 
 
-def generate_schedule(start, end, step, stub_type=StubType.FRONT_STUB_SHORT):
-    assert isinstance(start, int)
-    assert isinstance(end, int)
-    assert isinstance(step, Tenor)
-    assert isinstance(stub_type, StubType)
-    if stub_type==StubType.NOT_ALLOWED:
+def generate_schedule(start: int, end: int, step: Tenor, stub_type: StubType = StubType.FRONT_STUB_SHORT):
+    if stub_type == StubType.NOT_ALLOWED:
         d = start
         out = []
         while d <= end:
             out.append(d)
             d = date_step(d, step)
         mismatch = out[-1] - end
-        if mismatch!=0:
-            raise BaseException("Function generate_schedule for start=%s, end=%s, step=%s results in unallowed stub (mismatch %i days)" %
-                                (fromexceldate(start), fromexceldate(end), step.string, mismatch))
-        return array(out)
-    if stub_type==StubType.BACK_STUB_SHORT:
+        if mismatch != 0:
+            raise BaseException(
+                "Function generate_schedule for start=%s, end=%s, step=%s results in unallowed stub (mismatch %i days)" %
+                (start, end, step.string, mismatch))
+        return np.array(out)
+    if stub_type == StubType.BACK_STUB_SHORT:
         d = start
         out = []
         while d < end:
             out.append(d)
             d = date_step(d, step)
-        if out[-1]!=end:
+        if out[-1] != end:
             out.append(end)
-        return array(out)
+        return np.array(out)
     elif stub_type == StubType.BACK_STUB_LONG:
         d = start
         out = []
         while date_step(d, step) <= end:
             out.append(d)
             d = date_step(d, step)
-        if out[-1]!=end:
+        if out[-1] != end:
             out.append(end)
-        return array(out)
+        return np.array(out)
     elif stub_type == StubType.FRONT_STUB_SHORT:
         d = end
         out = []
@@ -202,9 +213,9 @@ def generate_schedule(start, end, step, stub_type=StubType.FRONT_STUB_SHORT):
         while d > start:
             out.append(d)
             d = date_step(d, stepinv)
-        if out[-1]!=start:
+        if out[-1] != start:
             out.append(start)
-        return array(out[::-1])
+        return np.array(out[::-1])
     elif stub_type == StubType.FRONT_STUB_LONG:
         d = end
         out = []
@@ -212,9 +223,9 @@ def generate_schedule(start, end, step, stub_type=StubType.FRONT_STUB_SHORT):
         while date_step(d, stepinv) >= start:
             out.append(d)
             d = date_step(d, stepinv)
-        if out[-1]!=start:
+        if out[-1] != start:
             out.append(start)
-        return array(out[::-1])
+        return np.array(out[::-1])
     else:
         raise BaseException("Other stub types not supported")
 

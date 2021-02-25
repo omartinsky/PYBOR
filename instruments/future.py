@@ -49,7 +49,7 @@ class Future(Instrument):
         self.curve_forecast = curve_forecast
         self.start_ = create_date(start, trade_date)
         self.end_ = date_step(self.start_, length)
-        self.accruals_ = array([self.start_, self.end_])
+        self.accruals_ = np.array([self.start_, self.end_])
         self.dcf_ = calculate_dcfs(self.accruals_, convention.dcc)[0]
         self.convexity_ = ConvexityModel().get_convexity(calculate_dcf(trade_date, self.start_, convention.dcc))
 

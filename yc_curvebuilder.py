@@ -1,20 +1,26 @@
 # Copyright © 2017 Ondrej Martinsky, All rights reserved
 # http://github.com/omartinsky/pybor
+import collections
+import re
 
-from instruments.deposit import *
-from instruments.zerorate import *
-from instruments.future import *
-from instruments.basisswap import *
-from instruments.crosscurrencyswap import *
-from instruments.swap import *
-from instruments.termdeposit import *
-from instruments.mtmcrosscurrencybasisswap import *
 import numpy
 from collections import OrderedDict, defaultdict
 
 from pandas import *
 import scipy.optimize
 import copy, os
+
+from instruments.basisswap import BasisSwap
+from instruments.crosscurrencyswap import CrossCurrencySwap
+from instruments.deposit import Deposit
+from instruments.future import Future
+from instruments.mtmcrosscurrencybasisswap import MtmCrossCurrencyBasisSwap
+from instruments.swap import Swap
+from instruments.termdeposit import TermDeposit
+from instruments.zerorate import ZeroRate
+from yc_curve import CurveMap, InterpolationMode, Curve
+from yc_helpers import enum_from_string
+import numpy as np
 
 
 def coalesce(*arg):
@@ -52,9 +58,12 @@ class BuildOutput:
         self.jacobian_dIdP = jacobian_dIdP
         self.instruments = instruments
 
+
 class PriceLadder(collections.OrderedDict):
-    def create(data):
-        if isinstance(data, pandas.DataFrame):
+
+    @staticmethod
+    def create(data: DataFrame):
+        if isinstance(data, DataFrame):
             od = collections.OrderedDict(data['Price'])
             return PriceLadder(od)
         elif isinstance(data, dict):
@@ -69,12 +78,12 @@ class PriceLadder(collections.OrderedDict):
         l = []
         for k, v in self.items():
             if re.match(instrument_regex, k):
-                l.append((k,v))
+                l.append((k, v))
         return PriceLadder.create(OrderedDict(l))
 
     def dataframe(self):
         df = DataFrame.from_dict(self, orient='index')
-        df.columns=['Price']
+        df.columns = ['Price']
         return df
 
 
@@ -84,6 +93,7 @@ def calc_residual(curvemap, instrument_prices, instrument):
     r_target = instrument.par_rate_from_price(price)
     return r_actual - r_target
 
+
 def calc_residuals(dofs, curve_builder, curvemap, instrument_prices, curves_for_stage, instruments_for_stage):
     if curve_builder.progress_monitor:
         curve_builder.progress_monitor.update()
@@ -92,6 +102,7 @@ def calc_residuals(dofs, curve_builder, curvemap, instrument_prices, curves_for_
 
     y = [calc_residual(curvemap, instrument_prices, i) for i in instruments_for_stage]
     return y
+
 
 class CurveBuilder:
     def __init__(self, excel_file, eval_date, progress_monitor=None):
@@ -187,14 +198,14 @@ class CurveBuilder:
                 if (curvemap):
                     rate = instrument.calc_par_rate(curvemap)
                     out[instrument.name_] = instrument.price_from_par_rate(rate)
-                else: # If curvemap is not provided, generated price ladder will contain zeros.
+                else:  # If curvemap is not provided, generated price ladder will contain zeros.
                     out[instrument.name_] = 0.0
         return PriceLadder(out)
 
     def get_instrument_rates(self, price_ladder):
         maturities = [self.get_instrument_by_name(name).get_pillar_date() for name in price_ladder.keys()]
         rates = [self.get_instrument_by_name(name).par_rate_from_price(price) for name, price in price_ladder.items()]
-        return array(maturities), array(rates)
+        return np.array(maturities), np.array(rates)
 
     def parse_instrument_prices(self, prices):
         if isinstance(prices, dict):
@@ -215,12 +226,12 @@ class CurveBuilder:
             for instrument in curve_template.instruments:
                 pillar_date = instrument.get_pillar_date()
                 pillar.append(pillar_date)
-            pillar = array(sorted(set(pillar)))
+            pillar = np.array(sorted(set(pillar)))
             assert len(pillar) > 0, "Pillars are empty"
-            dfs = exp(-initial_rate * (pillar - self.eval_date) / 365.)  # initial rates will be circa 2%
+            dfs = np.exp(-initial_rate * (pillar - self.eval_date) / 365.)  # initial rates will be circa 2%
             curve_name = curve_template.curve_name
             interpolation = enum_from_string(InterpolationMode, self.df_curves.loc[curve_name].Interpolation)
-            #print("Creating pillars %i - %i for curve %s" % (pillar_count, pillar_count + len(pillar), curve_name))
+            # print("Creating pillars %i - %i for curve %s" % (pillar_count, pillar_count + len(pillar), curve_name))
             pillar_count += len(pillar)
             curve = Curve(curve_name, self.eval_date, pillar, dfs, interpolation)
             curvemap.add_curve(curve)
@@ -229,20 +240,21 @@ class CurveBuilder:
     def build_curves(self, instrument_prices):
         instrument_prices = self.parse_instrument_prices(instrument_prices)
 
-        curvemap = self.create_initial_curvemap(0.02)   # Create unoptimized curve map
+        curvemap = self.create_initial_curvemap(0.02)  # Create unoptimized curve map
 
         stages = self.get_solve_stages()
 
         for iStage, curves_for_stage in enumerate(stages):
             instruments_for_stage = self.get_instruments_for_stage(curves_for_stage)
             dofs = curvemap.get_all_dofs(curves_for_stage)
-            print("Solving stage %i/%i containing curves %s (%i pillars)" % (iStage+1, len(stages), ", ".join(sorted(curves_for_stage)), len(dofs)))
+            print("Solving stage %i/%i containing curves %s (%i pillars)" % (
+                iStage + 1, len(stages), ", ".join(sorted(curves_for_stage)), len(dofs)))
 
             if (self.progress_monitor):
                 self.progress_monitor.reset()
 
             arguments = (self, curvemap, instrument_prices, curves_for_stage, instruments_for_stage)
-            bounds = (zeros(len(dofs)), numpy.inf * ones(len(dofs)))
+            bounds = (np.zeros(len(dofs)), numpy.inf * np.ones(len(dofs)))
             solution = scipy.optimize.least_squares(fun=calc_residuals, x0=dofs, args=arguments, bounds=bounds)
 
             assert isinstance(solution, scipy.optimize.OptimizeResult)
@@ -257,16 +269,16 @@ class CurveBuilder:
         all_curves = [curve_template.curve_name for curve_template in self.curve_templates]
         all_instruments = self.get_instruments_for_stage(all_curves)
         arguments = (self, curvemap, instrument_prices, all_curves, all_instruments)
-        e0 = array(calc_residuals(final_solution, *arguments))
+        e0 = np.array(calc_residuals(final_solution, *arguments))
         jacobian_dIdP = []
         for i in range(len(final_solution)):
-            bump_vector = zeros(len(final_solution))
+            bump_vector = np.zeros(len(final_solution))
             bump_vector[i] += bump_size
-            e = array(calc_residuals(final_solution + bump_vector, *arguments))
+            e = np.array(calc_residuals(final_solution + bump_vector, *arguments))
             jacobian_dIdP.append((e - e0) / bump_size)
         # this jacobian_dIdP contains dI/dP.  Rows=Pillars  Cols=Instruments
         # after inversion, it will contain dP/dI.   Rows=Instruments   Cols=Pillars
-        jacobian_dIdP = matrix(jacobian_dIdP)
+        jacobian_dIdP = np.array(jacobian_dIdP)
 
         print("Done")
         return BuildOutput(instrument_prices, curvemap, jacobian_dIdP, self.all_instruments)
@@ -274,4 +286,3 @@ class CurveBuilder:
     def get_instrument_by_name(self, name):
         pos = self.instrument_positions[name]
         return self.all_instruments[pos]
-
