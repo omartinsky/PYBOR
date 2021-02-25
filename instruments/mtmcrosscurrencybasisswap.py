@@ -73,8 +73,8 @@ class MtmCrossCurrencyBasisSwap(Instrument):
         fcurve_r = curvemap[self.curve_forecast_r_]
         dcurve_l = curvemap[self.curve_discount_l_]
         dcurve_r = curvemap[self.curve_discount_r_]
-        rl = fcurve_l.get_fwd_rate_aligned(self.accruals_l_, CouponFreq.ZERO, self.convention_l_.dcc)
-        rr = fcurve_r.get_fwd_rate_aligned(self.accruals_r_, CouponFreq.ZERO, self.convention_r_.dcc)
+        rl = fcurve_l.get_fwd_rate_aligned(self.accruals_l_, ZEROFREQ, self.convention_l_.dcc)
+        rr = fcurve_r.get_fwd_rate_aligned(self.accruals_r_, ZEROFREQ, self.convention_r_.dcc)
         df_l = dcurve_l.get_df(self.accruals_l_)
         df_r = dcurve_r.get_df(self.accruals_r_)
         dcf_l = self.dcf_l_

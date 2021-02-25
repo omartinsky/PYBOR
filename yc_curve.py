@@ -66,6 +66,11 @@ class InterpolationMode(enum.Enum):
     CUBIC_LOGDF = 2
 
 
+LINEAR_LOGDF = InterpolationMode.LINEAR_LOGDF
+LINEAR_CCZR = InterpolationMode.LINEAR_CCZR
+CUBIC_LOGDF = InterpolationMode.CUBIC_LOGDF
+
+
 class PlotMode(enum.Enum):
     DF = 0
     ZR = 1
@@ -118,9 +123,9 @@ class Curve:
     def set_interpolator(self, interpolation_mode: Optional[InterpolationMode] = None):
         if interpolation_mode is not None:
             self.interpolation_mode_ = interpolation_mode
-        if self.interpolation_mode_ in [InterpolationMode.LINEAR_LOGDF, InterpolationMode.LINEAR_CCZR]:
+        if self.interpolation_mode_ in [LINEAR_LOGDF, LINEAR_CCZR]:
             kind = 'linear'
-        elif self.interpolation_mode_ in [InterpolationMode.CUBIC_LOGDF]:
+        elif self.interpolation_mode_ in [CUBIC_LOGDF]:
             kind = 'cubic'
         else:
             raise BaseException(
@@ -128,11 +133,11 @@ class Curve:
         #
         assert len(self.times_) == len(self.dfs_), (len(self.times_), len(self.dfs_))
         #
-        if self.interpolation_mode_ in [InterpolationMode.LINEAR_LOGDF, InterpolationMode.CUBIC_LOGDF]:
+        if self.interpolation_mode_ in [LINEAR_LOGDF, CUBIC_LOGDF]:
             logdf = np.log(self.dfs_)
             interp = scipy.interpolate.interp1d(self.times_, logdf, kind=kind)
             self.interpolator_ = ExponentialInterpolator(interp)
-        elif self.interpolation_mode_ in [InterpolationMode.LINEAR_CCZR]:
+        elif self.interpolation_mode_ in [LINEAR_CCZR]:
             t_eval = self.times_[0]
             t_rel = self.times_ - t_eval
             cczr1 = np.log(self.dfs_[1:]) / t_rel[1:]
@@ -159,21 +164,21 @@ class Curve:
     def get_zero_rate(self, t, freq, dcc):
         dfs = self.get_df(t)
         dcf = calculate_dcf(self.times_[0], t, dcc)
-        if freq == CouponFreq.ZERO:
+        if freq == ZEROFREQ:
             return (1. / dfs - 1.) / dcf
-        if freq == CouponFreq.CONTINUOUS:
+        if freq == CONTINUOUS:
             return -np.log(dfs) / dcf
 
     def get_fwd_rate(self, t_start, t_end, freq, dcc):
         dfs_start = self.get_df(t_start)
         dfs_end = self.get_df(t_end)
         dcf = calculate_dcf(t_start, t_end, dcc)
-        if freq == CouponFreq.ZERO:
+        if freq == ZEROFREQ:
             return (dfs_start / dfs_end - 1) / dcf
-        if freq == CouponFreq.CONTINUOUS:
+        if freq == CONTINUOUS:
             return np.log(dfs_start / dfs_end) / dcf
 
-    def get_fwd_rate_aligned(self, t, freq, dcc):
+    def get_fwd_rate_aligned(self, t, freq: CouponFreq, dcc: DCC):
         # Slightly faster version which relies on the fact that calculation periods are aligned (no overlaps, no gaps)
         dfs = self.get_df(t)
         t1 = t[:-1]
@@ -181,9 +186,9 @@ class Curve:
         df1 = dfs[:-1]
         df2 = dfs[1:]
         dcf = calculate_dcf(t1, t2, dcc)
-        if freq == CouponFreq.ZERO:
+        if freq == ZEROFREQ:
             return (df1 / df2 - 1) / dcf
-        if freq == CouponFreq.CONTINUOUS:
+        if freq == CONTINUOUS:
             return np.log(df1 / df2) / dcf
 
     def set_all_dofs(self, dofs):
@@ -213,11 +218,11 @@ class Curve:
         ###
         if mode == PlotMode.FWD:
             convention = global_conventions.get(self.id_) if convention is None else convention
-            Y = self.get_fwd_rate_aligned(timesample, CouponFreq.ZERO, convention.dcc)
+            Y = self.get_fwd_rate_aligned(timesample, ZEROFREQ, convention.dcc)
             pylab.plot(X[:-1], Y, label=self.id_ if label is None else label)
         elif mode == PlotMode.ZR:
             convention = global_conventions.get(self.id_) if convention is None else convention
-            Y = self.get_zero_rate(timesample[1:], CouponFreq.ZERO, convention.dcc)
+            Y = self.get_zero_rate(timesample[1:], ZEROFREQ, convention.dcc)
             pylab.plot(X[:-1], Y, label=self.id_ if label is None else label)
         elif mode == PlotMode.DF:
             Y = self.get_df(timesample)

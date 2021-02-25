@@ -39,12 +39,18 @@ class RollType(enum.Enum):
 
 
 class StubType(enum.Enum):
-    NOT_ALLOWED = 0
+    STUB_NOT_ALLOWED = 0
     FRONT_STUB_SHORT = 1
     FRONT_STUB_LONG = 2
     BACK_STUB_SHORT = 3
     BACK_STUB_LONG = 4
 
+
+STUB_NOT_ALLOWED = StubType.STUB_NOT_ALLOWED
+FRONT_STUB_SHORT = StubType.FRONT_STUB_SHORT
+FRONT_STUB_LONG = StubType.FRONT_STUB_LONG
+BACK_STUB_SHORT = StubType.BACK_STUB_SHORT
+BACK_STUB_LONG = StubType.BACK_STUB_LONG
 
 excelBaseDate = datetime.date(1899, 12, 30)
 
@@ -173,8 +179,8 @@ def calculate_dcf(date0, date1, dcc):
     return numerator / dcc.get_denominator()
 
 
-def generate_schedule(start: int, end: int, step: Tenor, stub_type: StubType = StubType.FRONT_STUB_SHORT):
-    if stub_type == StubType.NOT_ALLOWED:
+def generate_schedule(start: int, end: int, step: Tenor, stub_type: StubType = FRONT_STUB_SHORT):
+    if stub_type == StubType.STUB_NOT_ALLOWED:
         d = start
         out = []
         while d <= end:

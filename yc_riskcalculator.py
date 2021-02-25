@@ -16,6 +16,10 @@ class BumpType(enum.Enum):
     JACOBIAN_REBUILD = 1
 
 
+FULL_REBUILD = BumpType.FULL_REBUILD
+JACOBIAN_REBUILD = BumpType.JACOBIAN_REBUILD
+
+
 class RiskCalculator:
     def __init__(self, curve_engine, build_output: BuildOutput):
         assert isinstance(curve_engine, CurveBuilder)
